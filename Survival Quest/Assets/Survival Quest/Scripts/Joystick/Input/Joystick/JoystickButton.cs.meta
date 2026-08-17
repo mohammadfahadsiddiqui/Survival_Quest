@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: cdc6add3a43b4ea4c9d6c8f4eee2e97e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Scripts/Joystick/Input/Joystick/JoystickButton.cs
+  uploadId: 734594

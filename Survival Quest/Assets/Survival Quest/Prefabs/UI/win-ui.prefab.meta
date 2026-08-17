@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 57e4794a23963e3498317d91de0f8be2
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/UI/win-ui.prefab
+  uploadId: 734594

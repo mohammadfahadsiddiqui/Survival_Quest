@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 872541221fc0e33499bb9f88b6a14dc6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/ScriptableObjects/ControlSetting.asset
+  uploadId: 734594

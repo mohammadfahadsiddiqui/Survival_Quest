@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 0efc4bc44762bf6438f4ce3f6ceed5ae
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Scripts/UI/LoseUI.cs
+  uploadId: 734594

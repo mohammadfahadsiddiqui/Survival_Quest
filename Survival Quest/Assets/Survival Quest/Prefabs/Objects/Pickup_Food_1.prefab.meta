@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 180181583c0ee444cb3da3b3a989f0d5
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/Objects/Pickup_Food_1.prefab
+  uploadId: 734594

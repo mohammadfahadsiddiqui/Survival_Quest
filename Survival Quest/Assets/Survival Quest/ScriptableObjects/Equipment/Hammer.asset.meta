@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a8677fe92f8110842bb3f7f002e218f1
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/ScriptableObjects/Equipment/Hammer.asset
+  uploadId: 734594

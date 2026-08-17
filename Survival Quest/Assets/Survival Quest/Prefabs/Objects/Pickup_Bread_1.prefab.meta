@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: dad84c4277df9ac43b190e4dd083fa5c
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/Objects/Pickup_Bread_1.prefab
+  uploadId: 734594

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e7b53fcdf6e0ac44199db994a218a03d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/ScriptableObjects/DataStorage.asset
+  uploadId: 734594

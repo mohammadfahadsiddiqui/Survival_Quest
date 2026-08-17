@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 1b41c5ef7ca2459458e85c2de8e0cbd2
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Scripts/UI/CanvasSizeFix.cs
+  uploadId: 734594

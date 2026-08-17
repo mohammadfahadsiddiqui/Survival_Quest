@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: ab0ee5852a8580d44ad33ab39dea6fcf
+timeCreated: 1504715503
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/Particles/prt-box-break-1.prefab
+  uploadId: 734594

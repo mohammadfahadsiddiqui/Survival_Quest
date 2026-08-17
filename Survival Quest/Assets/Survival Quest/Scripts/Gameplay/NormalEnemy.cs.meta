@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: ee30b7f480e1ff44c9df7468fa45ea3c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Scripts/Gameplay/NormalEnemy.cs
+  uploadId: 734594

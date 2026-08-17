@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 69775a20493c3c243b91d26dc54fd3f9
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Scripts/Gameplay/FixFrameRate.cs
+  uploadId: 734594

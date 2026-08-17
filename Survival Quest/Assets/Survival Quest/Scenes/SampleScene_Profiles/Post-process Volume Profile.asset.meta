@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 4afde6bc884e283418276cf189cda3a6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Scenes/SampleScene_Profiles/Post-process Volume
+    Profile.asset
+  uploadId: 734594

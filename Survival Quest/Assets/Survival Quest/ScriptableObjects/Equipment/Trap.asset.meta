@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4dbe3eb80e4c4bd458c58af64f9889a2
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/ScriptableObjects/Equipment/Trap.asset
+  uploadId: 734594

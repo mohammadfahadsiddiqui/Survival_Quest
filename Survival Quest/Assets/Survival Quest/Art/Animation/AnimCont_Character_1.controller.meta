@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: acf640889a134284881107b454fb9ad6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Art/Animation/AnimCont_Character_1.controller
+  uploadId: 734594

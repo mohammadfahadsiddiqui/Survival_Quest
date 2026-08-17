@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 7721cd2e867c8e04e9d690a56d7acc23
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Scripts/Joystick/ScriptableObjects/ControlSetting.cs
+  uploadId: 734594

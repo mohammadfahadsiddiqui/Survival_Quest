@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 30524ced290c8ac4293fb8a7f41646a4
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/UI/lose-ui.prefab
+  uploadId: 734594

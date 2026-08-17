@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6d858e878b2ac094b98c39bd33e64e1c
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/Particles/particle_spider-kill.prefab
+  uploadId: 734594

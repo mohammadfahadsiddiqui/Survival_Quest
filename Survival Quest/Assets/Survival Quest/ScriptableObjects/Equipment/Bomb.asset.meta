@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: fa01289219560a945aeb007718d1d27d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/ScriptableObjects/Equipment/Bomb.asset
+  uploadId: 734594

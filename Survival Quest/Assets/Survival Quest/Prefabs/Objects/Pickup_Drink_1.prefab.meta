@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e65b92d57e1fdde4ea4f20aa6993ab52
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/Objects/Pickup_Drink_1.prefab
+  uploadId: 734594

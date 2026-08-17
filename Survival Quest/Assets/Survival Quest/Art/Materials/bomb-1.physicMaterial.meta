@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 157575d454660594282516b95593f853
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 13400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Art/Materials/bomb-1.physicMaterial
+  uploadId: 734594

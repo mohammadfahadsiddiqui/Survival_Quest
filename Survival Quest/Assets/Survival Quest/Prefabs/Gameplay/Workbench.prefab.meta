@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 643058cac7495714a9c9a45cbe55a23f
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308246
+  packageName: Survival Quest 3D - Game Template
+  packageVersion: 1.1
+  assetPath: Assets/Survival Quest/Prefabs/Gameplay/Workbench.prefab
+  uploadId: 734594
