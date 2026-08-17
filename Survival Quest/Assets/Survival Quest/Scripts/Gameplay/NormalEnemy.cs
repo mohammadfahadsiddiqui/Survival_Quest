@@ -1,118 +1,102 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-
 namespace SurvivalGame
 {
-    public class NormalEnemy : MonoBehaviour
+public class NormalEnemy : MonoBehaviour
+{
+    [HideInInspector]
+    public float m_Health;
+
+    public Rigidbody m_Body;
+
+    public GameObject m_KillEffect;
+
+    [HideInInspector]
+    public bool m_CanMove;
+
+    public float m_HitTimer;
+    // Start is called before the first frame update
+    void Start()
     {
-        [HideInInspector] public float m_Health;
-        public Rigidbody m_Body;
-        public GameObject m_KillEffect;
-        [HideInInspector] public bool m_CanMove;
-        public float m_HitTimer;
+        m_CanMove = true;
+        m_HitTimer = 0;
+        m_Health = 50;
+    }
 
-        private Player m_Target;
+    // Update is called once per frame
+    void Update()
+    {
+        //Collider[] hit = Physics.OverlapSphere(transform.position, .7f);
 
-        void Awake()
+        //foreach (Collider c in hit)
+        //{
+        //    if (c.gameObject.tag == "Player")
+        //    {
+        //        Player.m_Current.m_Health -= 10;
+        //        Destroy(gameObject);
+        //    }
+        //}
+
+        Vector3 dir = Player.m_Current.transform.position - transform.position;
+        dir.y = 0;
+        transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(dir), 10 * Time.deltaTime);
+
+        float distance = Vector3.Distance(Player.m_Current.transform.position, transform.position);
+
+        if(distance <= 2)
         {
-            if (m_Body == null)
-                m_Body = GetComponent<Rigidbody>();
-
-            if (m_Body == null)
-                m_Body = gameObject.AddComponent<Rigidbody>();
-
-            m_Body.constraints = RigidbodyConstraints.FreezeRotation;
-            m_Target = Player.m_Current;
-        }
-
-        void Start()
-        {
-            m_CanMove = true;
-            m_HitTimer = 0f;
-            m_Health = 50f;
-
-            if (m_Target == null)
+            if(m_CanMove)
             {
-                GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-                if (playerObject != null)
-                    m_Target = playerObject.GetComponent<Player>();
-            }
-        }
-
-        void Update()
-        {
-            if (m_Target == null || !m_CanMove)
-                return;
-
-            Vector3 dir = m_Target.transform.position - transform.position;
-            dir.y = 0f;
-
-            if (dir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(dir), 10f * Time.deltaTime);
-
-            float distance = Vector3.Distance(m_Target.transform.position, transform.position);
-
-            if (distance <= 2f)
-            {
-                if (m_HitTimer <= 0f)
+                if (m_HitTimer <= 0)
                 {
-                    m_Target.m_Health -= 5f;
-                    Vector3 hitDirection = m_Target.transform.position - transform.position;
-                    hitDirection.y = 0f;
-                    if (hitDirection.sqrMagnitude > 0.0001f)
-                    {
-                        hitDirection.Normalize();
-                        m_Target.HitImpulse(.5f * hitDirection);
-                    }
-                    m_HitTimer = 2f;
+                    Player.m_Current.m_Health -= 5;
+                    Vector3 dir2 = Player.m_Current.transform.position - transform.position;
+                    dir2.y = 0;
+                    dir2.Normalize();
+                    Player.m_Current.HitImpulse(.5f*dir2);
+                    m_HitTimer = 2;
                 }
                 else
                 {
                     m_HitTimer -= Time.deltaTime;
                 }
             }
-            else
-            {
-                Vector3 movementDirection = m_Target.transform.position - transform.position;
-                movementDirection.y = 0f;
-                if (movementDirection.sqrMagnitude > 0.0001f)
-                {
-                    movementDirection.Normalize();
-                    if (m_Body != null)
-                        m_Body.linearVelocity = movementDirection * 5f;
-                }
-                else if (m_Body != null)
-                {
-                    m_Body.linearVelocity = Vector3.zero;
-                }
-            }
-
-            HandleHealth();
         }
-
-        public void HandleHealth()
+        else
         {
-            if (m_Health > 0f) return;
-
-            if (m_KillEffect != null)
+            if(m_CanMove)
             {
-                GameObject obj = Instantiate(m_KillEffect, transform.position + new Vector3(0f, 1f, 0f), Quaternion.identity);
-                Destroy(obj, 3f);
+                Vector3 movementDirection = Player.m_Current.transform.position - transform.position;
+                movementDirection.y = 0;
+                movementDirection.Normalize();
+                m_Body.linearVelocity = movementDirection * 5;
             }
+        }
+        HandleHealth();
+    }
 
+    public void HandleHealth()
+    {
+        if (m_Health <= 0)
+        {
+            GameObject obj = Instantiate(m_KillEffect);
+            obj.transform.position = transform.position+new Vector3(0,1,0);
+            Destroy(obj, 3);
             Destroy(gameObject);
         }
-
-        public void DisableMovement()
-        {
-            m_CanMove = false;
-            StartCoroutine(StartMoving());
-        }
-
-        IEnumerator StartMoving()
-        {
-            yield return new WaitForSeconds(3f);
-            m_CanMove = true;
-        }
     }
+
+    public void DisableMovement()
+    {
+        m_CanMove = false;
+        StartCoroutine(StartMoving());
+    }
+
+    IEnumerator StartMoving()
+    {
+        yield return new WaitForSeconds(3);
+        m_CanMove = true;
+    }
+}
 }
