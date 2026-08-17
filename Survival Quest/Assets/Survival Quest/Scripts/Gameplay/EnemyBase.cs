@@ -3,19 +3,13 @@ using UnityEngine;
 namespace SurvivalQuest.Gameplay
 {
     /// <summary>
-    /// Enemy foundation with very close player detection, chasing and melee attack.
-    /// Enemies stay idle until the player is almost beside them.
+    /// Stationary enemy. The enemy never chases the player.
+    /// It only attacks when the player physically comes within attack range.
     /// </summary>
     public class EnemyBase : MonoBehaviour
     {
         [Header("Stats")]
         [SerializeField] private float maxHealth = 100f;
-        [SerializeField] private float moveSpeed = 2.5f;
-
-        // Very small detection radius: enemy notices the player only when nearby.
-        [SerializeField] private float detectionRange = 0.75f;
-
-        // Attack only when the player is essentially beside the enemy.
         [SerializeField] private float attackRange = 0.5f;
         [SerializeField] private float attackDamage = 15f;
         [SerializeField] private float attackCooldown = 1.2f;
@@ -46,33 +40,17 @@ namespace SurvivalQuest.Gameplay
             if (IsDead || target == null)
                 return;
 
+            // The enemy NEVER moves toward the player.
+            // It only checks whether the player has reached its position.
             Vector3 flatTarget = target.position;
             flatTarget.y = transform.position.y;
             float distance = Vector3.Distance(transform.position, flatTarget);
 
-            // Outside 0.75m: completely idle. No chasing and no attack.
-            if (distance > detectionRange)
+            if (distance > attackRange)
                 return;
 
-            // Inside 0.75m but not yet at attack distance: move toward the player.
-            if (distance > attackRange)
-            {
-                transform.position = Vector3.MoveTowards(
-                    transform.position,
-                    flatTarget,
-                    moveSpeed * Time.deltaTime);
-
-                Vector3 direction = flatTarget - transform.position;
-                if (direction.sqrMagnitude > 0.001f)
-                {
-                    transform.rotation = Quaternion.Slerp(
-                        transform.rotation,
-                        Quaternion.LookRotation(direction),
-                        10f * Time.deltaTime);
-                }
-            }
-            // Inside 0.5m: attack.
-            else if (Time.time >= nextAttackTime)
+            // Player is close enough: attack.
+            if (Time.time >= nextAttackTime)
             {
                 nextAttackTime = Time.time + attackCooldown;
                 target.SendMessage(
