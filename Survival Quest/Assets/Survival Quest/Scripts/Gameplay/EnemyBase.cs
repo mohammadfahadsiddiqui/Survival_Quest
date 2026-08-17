@@ -3,8 +3,8 @@ using UnityEngine;
 namespace SurvivalQuest.Gameplay
 {
     /// <summary>
-    /// Enemy foundation with nearby-player detection, chasing and melee attack.
-    /// Enemies remain idle when the player is outside detectionRange.
+    /// Enemy foundation with very close player detection, chasing and melee attack.
+    /// Enemies stay idle until the player is almost beside them.
     /// </summary>
     public class EnemyBase : MonoBehaviour
     {
@@ -12,9 +12,11 @@ namespace SurvivalQuest.Gameplay
         [SerializeField] private float maxHealth = 100f;
         [SerializeField] private float moveSpeed = 2.5f;
 
-        // Enemy will not react to or chase the player outside this range.
-        [SerializeField] private float detectionRange = 10f;
-        [SerializeField] private float attackRange = 1.8f;
+        // Very small detection radius: enemy notices the player only when nearby.
+        [SerializeField] private float detectionRange = 0.75f;
+
+        // Attack only when the player is essentially beside the enemy.
+        [SerializeField] private float attackRange = 0.5f;
         [SerializeField] private float attackDamage = 15f;
         [SerializeField] private float attackCooldown = 1.2f;
 
@@ -48,11 +50,11 @@ namespace SurvivalQuest.Gameplay
             flatTarget.y = transform.position.y;
             float distance = Vector3.Distance(transform.position, flatTarget);
 
-            // Player is too far away: enemy stays completely idle.
+            // Outside 0.75m: completely idle. No chasing and no attack.
             if (distance > detectionRange)
                 return;
 
-            // Player has entered the detection area: chase and attack.
+            // Inside 0.75m but not yet at attack distance: move toward the player.
             if (distance > attackRange)
             {
                 transform.position = Vector3.MoveTowards(
@@ -66,9 +68,10 @@ namespace SurvivalQuest.Gameplay
                     transform.rotation = Quaternion.Slerp(
                         transform.rotation,
                         Quaternion.LookRotation(direction),
-                        8f * Time.deltaTime);
+                        10f * Time.deltaTime);
                 }
             }
+            // Inside 0.5m: attack.
             else if (Time.time >= nextAttackTime)
             {
                 nextAttackTime = Time.time + attackCooldown;
