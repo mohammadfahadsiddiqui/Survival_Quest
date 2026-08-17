@@ -5,11 +5,6 @@ using UnityEngine.SceneManagement;
 using UnityEditor.SceneManagement;
 using SurvivalQuest.Gameplay;
 
-/// <summary>
-/// Builds the forest and enemy setup directly into SampleScene.
-/// The setup runs automatically once when SampleScene is opened/imported.
-/// Manual menu: Tools -> Survival Quest -> Build Forest & Enemies
-/// </summary>
 [InitializeOnLoad]
 public static class SurvivalQuestForestBuilder
 {
@@ -20,28 +15,61 @@ public static class SurvivalQuestForestBuilder
 
     static SurvivalQuestForestBuilder()
     {
-        EditorApplication.delayCall += AutoBuildIfNeeded;
+        EditorApplication.delayCall += AutoBuild;
     }
 
-    private static void AutoBuildIfNeeded()
+    private static void AutoBuild()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         Scene scene = SceneManager.GetActiveScene();
         if (!scene.IsValid() || scene.name != "SampleScene") return;
-        if (GameObject.Find(ForestObject) != null || GameObject.Find(EnemyObject) != null) return;
-        Build(false);
+
+        CleanupMissingScripts(scene);
+
+        if (GameObject.Find(ForestObject) == null || GameObject.Find(EnemyObject) == null)
+            Build(false);
+        else
+            EditorSceneManager.SaveScene(scene);
     }
 
     [MenuItem("Tools/Survival Quest/Build Forest & Enemies")]
-    public static void BuildManually()
+    public static void BuildManually() => Build(true);
+
+    [MenuItem("Tools/Survival Quest/Clean Missing Scripts")]
+    public static void CleanMissingScriptsManually()
     {
-        Build(true);
+        CleanupMissingScripts(SceneManager.GetActiveScene());
+        AssetDatabase.SaveAssets();
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+    }
+
+    private static void CleanupMissingScripts(Scene scene)
+    {
+        if (!scene.IsValid()) return;
+        int removed = 0;
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            GameObject[] objects = root.GetComponentsInChildren<Transform>(true).Length > 0
+                ? System.Array.ConvertAll(root.GetComponentsInChildren<Transform>(true), t => t.gameObject)
+                : new GameObject[0];
+
+            foreach (GameObject go in objects)
+                removed += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(go);
+        }
+
+        if (removed > 0)
+        {
+            Debug.Log("[SurvivalQuest] Removed " + removed + " missing script component(s) from SampleScene.");
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
     }
 
     private static void Build(bool interactive)
     {
         Scene scene = SceneManager.GetActiveScene();
         if (!scene.IsValid()) return;
+
+        CleanupMissingScripts(scene);
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null) player = GameObject.Find("Player");
@@ -60,7 +88,7 @@ public static class SurvivalQuestForestBuilder
         if (interactive)
         {
             Selection.activeGameObject = forestParent.gameObject;
-            EditorUtility.DisplayDialog("Survival Quest", "Forest and enemies have been added to SampleScene. Press Play to test.", "OK");
+            EditorUtility.DisplayDialog("Survival Quest", "Forest and enemies are now installed in SampleScene.", "OK");
         }
     }
 
@@ -75,40 +103,22 @@ public static class SurvivalQuestForestBuilder
         SetObject(so, "player", player);
         SetObject(so, "forestParent", parent);
 
-        // This project currently contains bush prefabs rather than named tree/rock prefabs.
-        // Use bushes as the dense forest dressing and the hill/cliff assets as terrain landmarks.
+        GameObject[] trees = FindPrefabs("tree");
         GameObject[] bushes = FindPrefabs("bush");
-        GameObject[] hills = FindPrefabs("hill");
-        GameObject[] cliffs = FindPrefabs("cliff");
-        GameObject[] ground = FindPrefabs("ground");
+        GameObject[] rocks = FindPrefabs("rock");
 
-        SetPrefabArray(so, "treePrefabs", bushes);
+        SetPrefabArray(so, "treePrefabs", trees);
         SetPrefabArray(so, "bushPrefabs", bushes);
-        SetPrefabArray(so, "rockPrefabs", hills.Length > 0 ? hills : cliffs);
-        SetInt(so, "treeCount", 45);
+        SetPrefabArray(so, "rockPrefabs", rocks);
+        SetInt(so, "treeCount", 55);
         SetInt(so, "bushCount", 85);
-        SetInt(so, "rockCount", 12);
+        SetInt(so, "rockCount", 25);
         SetFloat(so, "minDistanceFromPlayer", 8f);
-        SetFloat(so, "maxScaleVariation", 0.30f);
+        SetFloat(so, "maxScaleVariation", 0.25f);
         so.ApplyModifiedPropertiesWithoutUndo();
 
-        ClearChildren(parent);
+        controller.ClearForest();
         controller.GenerateForest();
-
-        // Add a few large terrain pieces around the outside, when available.
-        GameObject terrainPrefab = hills.Length > 0 ? hills[0] : (cliffs.Length > 0 ? cliffs[0] : (ground.Length > 0 ? ground[0] : null));
-        if (terrainPrefab != null)
-        {
-            for (int i = 0; i < 6; i++)
-            {
-                float angle = i * 60f * Mathf.Deg2Rad;
-                Vector3 pos = new Vector3(Mathf.Cos(angle) * 32f, 0f, Mathf.Sin(angle) * 32f);
-                GameObject piece = (GameObject)PrefabUtility.InstantiatePrefab(terrainPrefab, parent);
-                piece.transform.position = pos;
-                piece.transform.rotation = Quaternion.Euler(0f, i * 60f, 0f);
-                piece.transform.localScale = Vector3.one * 1.5f;
-            }
-        }
     }
 
     private static void ConfigureEnemies(Transform parent, Transform player)
@@ -119,8 +129,6 @@ public static class SurvivalQuestForestBuilder
         GameObject normal = AssetDatabase.LoadAssetAtPath<GameObject>(GameplayRoot + "NormalEnemy.prefab");
         GameObject bruteSource = AssetDatabase.LoadAssetAtPath<GameObject>(GameplayRoot + "Brute.fbx");
         GameObject brute = bruteSource != null ? CreateOrGetBrutePrefab(bruteSource) : null;
-
-        if (brute != null) ConfigureEnemyPrefab(brute, 180f, 1.8f, 16f, 2f, 30f, 1.8f);
 
         SerializedObject so = new SerializedObject(spawner);
         SetObject(so, "player", player);
@@ -133,8 +141,9 @@ public static class SurvivalQuestForestBuilder
         if (normal != null && brute != null) SetPrefabArray(so, "enemyPrefabs", new[] { normal, brute });
         else if (normal != null) SetPrefabArray(so, "enemyPrefabs", new[] { normal });
         else if (brute != null) SetPrefabArray(so, "enemyPrefabs", new[] { brute });
-        so.ApplyModifiedPropertiesWithoutUndo();
+        else SetPrefabArray(so, "enemyPrefabs", new GameObject[0]);
 
+        so.ApplyModifiedPropertiesWithoutUndo();
         ClearChildren(parent);
     }
 
@@ -176,23 +185,6 @@ public static class SurvivalQuestForestBuilder
         return prefab;
     }
 
-    private static void ConfigureEnemyPrefab(GameObject prefab, float health, float speed, float detection, float attackRange, float damage, float cooldown)
-    {
-        if (prefab == null) return;
-        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-        EnemyBase enemy = instance.GetComponent<EnemyBase>() ?? instance.AddComponent<EnemyBase>();
-        SerializedObject so = new SerializedObject(enemy);
-        SetFloat(so, "maxHealth", health);
-        SetFloat(so, "moveSpeed", speed);
-        SetFloat(so, "detectionRange", detection);
-        SetFloat(so, "attackRange", attackRange);
-        SetFloat(so, "attackDamage", damage);
-        SetFloat(so, "attackCooldown", cooldown);
-        so.ApplyModifiedPropertiesWithoutUndo();
-        PrefabUtility.ApplyPrefabInstance(instance, InteractionMode.AutomatedAction);
-        Object.DestroyImmediate(instance);
-    }
-
     private static GameObject[] FindPrefabs(string keyword)
     {
         string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { NatureRoot });
@@ -216,7 +208,8 @@ public static class SurvivalQuestForestBuilder
 
     private static void ClearChildren(Transform parent)
     {
-        for (int i = parent.childCount - 1; i >= 0; i--) Object.DestroyImmediate(parent.GetChild(i).gameObject);
+        for (int i = parent.childCount - 1; i >= 0; i--)
+            Object.DestroyImmediate(parent.GetChild(i).gameObject);
     }
 
     private static void SetObject(SerializedObject so, string property, Object value)
