@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
@@ -17,8 +17,8 @@ namespace SurvivalGame.ScriptableObjects
         public int Gem;
         public int m_PlayerXP;
         public int LevelUnlocked;
-        public int[] m_Resources = new int[4];
-        public int[] m_Weapons = new int[4];
+        public int[] m_Resources = new int[5];
+        public int[] m_Weapons = new int[5];
 
 
         public bool MuteMusic;
@@ -81,18 +81,21 @@ namespace SurvivalGame.ScriptableObjects
             //    PlayerPrefs.SetInt("m_PowerCount" + i.ToString(), m_PowerCount[i]);
             //}
 
-            for (int i = 0; i < 4; i++)
+            if (m_Resources != null)
             {
-                PlayerPrefs.SetInt("m_Resources" + i.ToString(), m_Resources[i]);
+                for (int i = 0; i < m_Resources.Length; i++)
+                {
+                    PlayerPrefs.SetInt("m_Resources" + i.ToString(), m_Resources[i]);
+                }
             }
 
-            for (int i = 0; i < 4; i++)
+            if (m_Weapons != null)
             {
-                PlayerPrefs.SetInt("m_Weapons" + i.ToString(), m_Weapons[i]);
+                for (int i = 0; i < m_Weapons.Length; i++)
+                {
+                    PlayerPrefs.SetInt("m_Weapons" + i.ToString(), m_Weapons[i]);
+                }
             }
-
-
-
 
             PlayerPrefs.Save();
         }
@@ -117,19 +120,23 @@ namespace SurvivalGame.ScriptableObjects
             //    m_PowerCount[i] = PlayerPrefs.GetInt("m_PowerCount" + i.ToString(), 0);
             //}
 
-            for (int i = 0; i < 4; i++)
+            if (m_Resources == null || m_Resources.Length < 5)
+            {
+                m_Resources = new int[5];
+            }
+            for (int i = 0; i < m_Resources.Length; i++)
             {
                 m_Resources[i] = PlayerPrefs.GetInt("m_Resources" + i.ToString(), 0);
             }
 
-            for (int i = 0; i < 4; i++)
+            if (m_Weapons == null || m_Weapons.Length < 5)
+            {
+                m_Weapons = new int[5];
+            }
+            for (int i = 0; i < m_Weapons.Length; i++)
             {
                 m_Weapons[i] = PlayerPrefs.GetInt("m_Weapons" + i.ToString(), 0);
             }
-
-
-
-
         }
 
         public void ResetSaveData()

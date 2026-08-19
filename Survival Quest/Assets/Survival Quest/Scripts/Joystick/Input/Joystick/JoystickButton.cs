@@ -69,35 +69,36 @@ namespace SurvivalGame
                     m_CachedCam = Camera.main;
             }
 
-            if (m_CachedCam != null && PointerPos.Length > 0)
+            if (m_CachedCam != null && m_CachedCam.pixelWidth > 0 && m_CachedCam.pixelHeight > 0 && PointerPos.Length > 0)
             {
-                float screenW = Screen.width > 0 ? (float)Screen.width : 1920f;
-                float screenH = Screen.height > 0 ? (float)Screen.height : 1080f;
-
-                for (int i = 0; i < PointerPos.Length; i++)
+                Rect camRect = m_CachedCam.pixelRect;
+                if (camRect.width > 0 && camRect.height > 0)
                 {
-                    Vector3 p = PointerPos[i];
-                    if (float.IsNaN(p.x) || float.IsInfinity(p.x) || float.IsNaN(p.y) || float.IsInfinity(p.y))
-                        continue;
-
-                    // Bounds check
-                    if (p.x < 0 || p.x > screenW || p.y < 0 || p.y > screenH)
-                        continue;
-
-                    Ray ray = m_CachedCam.ScreenPointToRay(p);
-                    RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, LayerMask.GetMask("UI"));
-
-                    foreach (RaycastHit r in hits)
+                    for (int i = 0; i < PointerPos.Length; i++)
                     {
-                        if (r.collider.gameObject == gameObject)
-                        {
-                            TempHold = true;
-                            HitPosition = r.point;
-                            break;
-                        }
-                    }
+                        Vector3 p = PointerPos[i];
+                        if (float.IsNaN(p.x) || float.IsInfinity(p.x) || float.IsNaN(p.y) || float.IsInfinity(p.y))
+                            continue;
 
-                    if (TempHold) break;
+                        // Bounds check against camera viewport rect
+                        if (!camRect.Contains(p))
+                            continue;
+
+                        Ray ray = m_CachedCam.ScreenPointToRay(p);
+                        RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, LayerMask.GetMask("UI"));
+
+                        foreach (RaycastHit r in hits)
+                        {
+                            if (r.collider != null && r.collider.gameObject == gameObject)
+                            {
+                                TempHold = true;
+                                HitPosition = r.point;
+                                break;
+                            }
+                        }
+
+                        if (TempHold) break;
+                    }
                 }
             }
 

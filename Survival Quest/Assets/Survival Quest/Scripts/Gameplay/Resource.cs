@@ -29,20 +29,24 @@ public class Resource : MonoBehaviour
         m_Shake = false;
         m_Health = m_MaxHealth;
         m_Position = transform;
-        GameControl.m_Current.m_Resources.Add(this);
+        if (GameControl.m_Current != null)
+        {
+            if (GameControl.m_Current.m_Resources == null)
+            {
+                GameControl.m_Current.m_Resources = new List<Resource>();
+            }
+            GameControl.m_Current.m_Resources.Add(this);
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-
-        if(m_Shake)
+        if (m_Shake && m_ShakePoint != null)
         {
-            m_ShakePoint.localRotation = Quaternion.Euler(Mathf.Sin(Time.time * 35) * 5, 0, 0);
+            m_ShakePoint.localRotation = Quaternion.Euler(Mathf.Sin(Time.time * 35f) * 5f, 0f, 0f);
         }
 
-
-        
         HandleHealth();
     }
 
@@ -50,13 +54,23 @@ public class Resource : MonoBehaviour
     {
         if (m_Health <= 0)
         {
-            GameControl.m_Current.m_DestroyedResource = this;
-            GenerateResource();
-            GameControl.m_Current.m_Resources.Remove(this);
+            if (GameControl.m_Current != null)
+            {
+                GameControl.m_Current.m_DestroyedResource = this;
+                if (GameControl.m_Current.m_Resources != null)
+                {
+                    GameControl.m_Current.m_Resources.Remove(this);
+                }
+            }
 
-            GameObject obj = Instantiate(m_BreakEffect);
-            obj.transform.position = transform.position + new Vector3(0, 1, 0);
-            Destroy(obj,3);
+            GenerateResource();
+
+            if (m_BreakEffect != null)
+            {
+                GameObject obj = Instantiate(m_BreakEffect);
+                obj.transform.position = transform.position + new Vector3(0f, 1f, 0f);
+                Destroy(obj, 3f);
+            }
 
             Destroy(gameObject);
         }
@@ -64,17 +78,20 @@ public class Resource : MonoBehaviour
 
     public void GenerateResource()
     {
+        if (m_ResourcePickUp == null) return;
+
         for (int i = 0; i < m_ResourceCount; i++)
         {
-            
-            Vector3 pos = Random.insideUnitSphere;
-            pos.y = 0;
-            pos.Normalize();
-            pos = 3 * pos;
+            Vector2 circle = Random.insideUnitCircle;
+            if (circle.sqrMagnitude < 0.001f)
+                circle = Vector2.right;
+            else
+                circle.Normalize();
+
+            Vector3 pos = new Vector3(circle.x, 0f, circle.y) * 3f;
             GameObject obj = Instantiate(m_ResourcePickUp);
-            obj.transform.position = transform.position + new Vector3(0, 1f, 0)+pos;
+            obj.transform.position = transform.position + new Vector3(0f, 1f, 0f) + pos;
         }
-       
     }
 
     public void HandleHit()

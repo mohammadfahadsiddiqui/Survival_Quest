@@ -15,19 +15,22 @@ public class SpawnPoint : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        m_SpawnTimer = Random.Range(3f, 7f);
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(m_StartSpawning)
+        if (m_StartSpawning)
         {
-            if(m_SpawnTimer <= 0)
+            if (m_SpawnTimer <= 0f)
             {
-                GameObject obj = Instantiate(m_EnemyPrefab);
-                obj.transform.position = transform.position;
-                m_SpawnTimer = Random.Range(3,7);
+                if (m_EnemyPrefab != null)
+                {
+                    GameObject obj = Instantiate(m_EnemyPrefab);
+                    obj.transform.position = transform.position;
+                }
+                m_SpawnTimer = Random.Range(3f, 7f);
             }
             else
             {
@@ -36,13 +39,13 @@ public class SpawnPoint : MonoBehaviour
         }
         else
         {
-            m_SpawnTimer = Random.Range(3, 7); ;
+            m_SpawnTimer = Random.Range(3f, 7f);
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.gameObject.tag == "Player")
+        if (other != null && other.gameObject.CompareTag("Player"))
         {
             m_StartSpawning = true;
         }
@@ -50,7 +53,7 @@ public class SpawnPoint : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.gameObject.tag == "Player")
+        if (other != null && other.gameObject.CompareTag("Player"))
         {
             m_StartSpawning = false;
         }

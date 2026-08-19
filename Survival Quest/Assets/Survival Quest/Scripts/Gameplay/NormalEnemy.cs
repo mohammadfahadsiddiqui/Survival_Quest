@@ -27,37 +27,54 @@ public class NormalEnemy : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        //Collider[] hit = Physics.OverlapSphere(transform.position, .7f);
-
-        //foreach (Collider c in hit)
-        //{
-        //    if (c.gameObject.tag == "Player")
-        //    {
-        //        Player.m_Current.m_Health -= 10;
-        //        Destroy(gameObject);
-        //    }
-        //}
-
-        Vector3 dir = Player.m_Current.transform.position - transform.position;
-        dir.y = 0;
-        transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(dir), 10 * Time.deltaTime);
-
-        float distance = Vector3.Distance(Player.m_Current.transform.position, transform.position);
-
-
-        if(distance <= 2)
+        if (Player.m_Current == null || !Player.m_Current.gameObject.activeInHierarchy)
         {
-            if(m_CanMove)
+            if (m_Body != null)
+            {
+                m_Body.linearVelocity = Vector3.zero;
+            }
+            return;
+        }
+
+        Vector3 playerPos = Player.m_Current.transform.position;
+        if (float.IsNaN(playerPos.x) || float.IsInfinity(playerPos.x) ||
+            float.IsNaN(playerPos.y) || float.IsInfinity(playerPos.y) ||
+            float.IsNaN(playerPos.z) || float.IsInfinity(playerPos.z))
+        {
+            return;
+        }
+
+        Vector3 dir = playerPos - transform.position;
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude > 0.001f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+            transform.rotation = Quaternion.Lerp(transform.rotation, targetRot, 10f * Time.deltaTime);
+        }
+
+        float distance = Vector3.Distance(playerPos, transform.position);
+
+        if (distance <= 2f)
+        {
+            if (m_Body != null)
+            {
+                m_Body.linearVelocity = Vector3.zero;
+            }
+
+            if (m_CanMove)
             {
                 if (m_HitTimer <= 0)
                 {
-                    Player.m_Current.m_Health -= 5;
-                    Vector3 dir2 = Player.m_Current.transform.position - transform.position;
-                    dir2.y = 0;
-                    dir2.Normalize();
-                    Player.m_Current.HitImpulse(.5f*dir2);
-                    m_HitTimer = 2;
+                    Player.m_Current.m_Health -= 5f;
+                    Vector3 dir2 = playerPos - transform.position;
+                    dir2.y = 0f;
+                    if (dir2.sqrMagnitude > 0.001f)
+                    {
+                        dir2.Normalize();
+                        Player.m_Current.HitImpulse(0.5f * dir2);
+                    }
+                    m_HitTimer = 2f;
                 }
                 else
                 {
@@ -67,15 +84,21 @@ public class NormalEnemy : MonoBehaviour
         }
         else
         {
-            if(m_CanMove)
+            if (m_CanMove && m_Body != null)
             {
-                Vector3 movementDirection = Player.m_Current.transform.position - transform.position;
-                movementDirection.y = 0;
-                movementDirection.Normalize();
-                m_Body.linearVelocity = movementDirection * 5;
+                Vector3 movementDirection = playerPos - transform.position;
+                movementDirection.y = 0f;
+                if (movementDirection.sqrMagnitude > 0.001f)
+                {
+                    movementDirection.Normalize();
+                    m_Body.linearVelocity = movementDirection * 5f;
+                }
+                else
+                {
+                    m_Body.linearVelocity = Vector3.zero;
+                }
             }
         }
-        
 
         HandleHealth();
     }
@@ -83,11 +106,14 @@ public class NormalEnemy : MonoBehaviour
 
     public void HandleHealth()
     {
-        if (m_Health <= 0)
+        if (m_Health <= 0f)
         {
-            GameObject obj = Instantiate(m_KillEffect);
-            obj.transform.position = transform.position+new Vector3(0,1,0);
-            Destroy(obj, 3);
+            if (m_KillEffect != null)
+            {
+                GameObject obj = Instantiate(m_KillEffect);
+                obj.transform.position = transform.position + new Vector3(0f, 1f, 0f);
+                Destroy(obj, 3f);
+            }
 
             Destroy(gameObject);
         }

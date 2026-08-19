@@ -23,14 +23,22 @@ public class ResourcePickUp : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.tag == "Player")
+        if (other != null && other.gameObject.CompareTag("Player"))
         {
-            GameControl.m_Current.m_Data.m_Resources[m_ID]++;
-            GameControl.m_Current.m_Data.SaveData();
+            if (GameControl.m_Current != null && GameControl.m_Current.m_Data != null &&
+                GameControl.m_Current.m_Data.m_Resources != null &&
+                m_ID >= 0 && m_ID < GameControl.m_Current.m_Data.m_Resources.Length)
+            {
+                GameControl.m_Current.m_Data.m_Resources[m_ID]++;
+                GameControl.m_Current.m_Data.SaveData();
+            }
 
-            GameObject obj = Instantiate(m_PickParticlePrefab);
-            obj.transform.position = transform.position;
-            Destroy(obj, 3);
+            if (m_PickParticlePrefab != null)
+            {
+                GameObject obj = Instantiate(m_PickParticlePrefab);
+                obj.transform.position = transform.position;
+                Destroy(obj, 3f);
+            }
 
             Destroy(gameObject);
         }

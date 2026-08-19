@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,37 +28,36 @@ namespace SurvivalGame
             Collider[] colls = Physics.OverlapSphere(transform.position, Radius);
             foreach (Collider col in colls)
             {
+                if (col == null || col.gameObject == null) continue;
 
                 Rigidbody rb = col.gameObject.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
-                    rb.AddForceAtPosition(col.gameObject.transform.position - transform.forward, transform.position);
+                    Vector3 forceDir = col.transform.position - transform.position;
+                    if (forceDir.sqrMagnitude > 0.001f)
+                    {
+                        rb.AddForceAtPosition(forceDir.normalized * 5f, transform.position, ForceMode.Impulse);
+                    }
                 }
 
                 switch (col.gameObject.tag)
                 {
                     case "Resource":
-                        col.gameObject.GetComponent<Resource>().m_Health -= M_Damage;
-                        col.gameObject.GetComponent<Resource>().HandleHit();
-                        //CreateHitParticle();
+                        Resource res = col.gameObject.GetComponent<Resource>();
+                        if (res != null)
+                        {
+                            res.m_Health -= M_Damage;
+                            res.HandleHit();
+                        }
                         break;
                     case "NormalEnemy":
-                        col.gameObject.GetComponent<NormalEnemy>().m_Health -= M_Damage;
-                        //CreateHitParticle();
+                        NormalEnemy enemy = col.gameObject.GetComponent<NormalEnemy>();
+                        if (enemy != null)
+                        {
+                            enemy.m_Health -= M_Damage;
+                        }
                         break;
                 }
-
-                //BreakObject obj = col.gameObject.GetComponent<BreakObject>();
-                //if (obj != null)
-                //{
-                //    obj.DoBreak();
-                //}
-                //DamageControl d = col.gameObject.GetComponent<DamageControl>();
-                //if (d != null)
-                //{
-                //    d.ApplyDamage(M_Damage, transform.forward, 1);
-                //}
-
             }
 
             //Destroy(gameObject);

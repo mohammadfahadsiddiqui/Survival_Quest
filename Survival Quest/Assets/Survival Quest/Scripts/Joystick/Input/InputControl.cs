@@ -58,15 +58,14 @@ namespace SurvivalGame
                         m_Fire = true;
                 }
 
-                if (m_WorldCamera != null)
+                if (m_WorldCamera != null && m_WorldCamera.pixelWidth > 0 && m_WorldCamera.pixelHeight > 0)
                 {
                     Vector3 mousePos = Input.mousePosition;
                     if (!float.IsNaN(mousePos.x) && !float.IsInfinity(mousePos.x) &&
                         !float.IsNaN(mousePos.y) && !float.IsInfinity(mousePos.y))
                     {
-                        float screenW = Screen.width > 0 ? (float)Screen.width : 1920f;
-                        float screenH = Screen.height > 0 ? (float)Screen.height : 1080f;
-                        if (mousePos.x >= 0 && mousePos.x <= screenW && mousePos.y >= 0 && mousePos.y <= screenH)
+                        Rect camRect = m_WorldCamera.pixelRect;
+                        if (camRect.width > 0 && camRect.height > 0 && camRect.Contains(mousePos))
                         {
                             Ray ray = m_WorldCamera.ScreenPointToRay(mousePos);
                             float dis = 0;

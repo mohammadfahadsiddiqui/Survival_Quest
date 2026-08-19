@@ -211,7 +211,7 @@ namespace SurvivalGame
                 m_PlayerController.Move(totalMovement * Time.deltaTime);
             }
 
-            if (movementDirection != Vector3.zero && rotation != Vector3.zero)
+            if (movementDirection != Vector3.zero && rotation != Vector3.zero && rotation.sqrMagnitude > 0.001f)
             {
                 Quaternion targetRot = Quaternion.LookRotation(rotation, Vector3.up);
                 transform.rotation = Quaternion.Lerp(transform.rotation, targetRot, 10f * Time.deltaTime);
@@ -317,46 +317,71 @@ namespace SurvivalGame
 
                 case 1: // Sword
                     yield return new WaitForSeconds(0.3f);
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null)
+                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 1 &&
+                        GameControl.m_Current.m_Contents.m_Equipment[1] != null)
                     {
                         CheckHit(GameControl.m_Current.m_Contents.m_Equipment[1].m_Damage);
                         m_SwordHits++;
                         if (m_SwordHits >= GameControl.m_Current.m_Contents.m_Equipment[1].m_Durability)
                         {
                             Invoke("SwitchToDeafultWeapon", 0.5f);
-                            GameControl.m_Current.m_Data.m_Weapons[1]--;
+                            if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 1)
+                            {
+                                GameControl.m_Current.m_Data.m_Weapons[1]--;
+                            }
                             m_SwordHits = 0;
                         }
+                    }
+                    else
+                    {
+                        CheckHit(15f);
                     }
                     break;
 
                 case 2: // Hammer
                     yield return new WaitForSeconds(0.3f);
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null)
+                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 2 &&
+                        GameControl.m_Current.m_Contents.m_Equipment[2] != null)
                     {
                         CheckHit(GameControl.m_Current.m_Contents.m_Equipment[2].m_Damage);
                         m_HammerHits++;
                         if (m_HammerHits >= GameControl.m_Current.m_Contents.m_Equipment[2].m_Durability)
                         {
                             Invoke("SwitchToDeafultWeapon", 0.5f);
-                            GameControl.m_Current.m_Data.m_Weapons[2]--;
+                            if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 2)
+                            {
+                                GameControl.m_Current.m_Data.m_Weapons[2]--;
+                            }
                             m_HammerHits = 0;
                         }
+                    }
+                    else
+                    {
+                        CheckHit(20f);
                     }
                     break;
 
                 case 3: // Trap
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null)
+                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 3 &&
+                        GameControl.m_Current.m_Contents.m_Equipment[3] != null && GameControl.m_Current.m_Contents.m_Equipment[3].m_Prefab != null)
                     {
                         GameObject obj = Instantiate(GameControl.m_Current.m_Contents.m_Equipment[3].m_Prefab);
                         obj.transform.position = transform.position;
-                        GameControl.m_Current.m_Data.m_Weapons[3]--;
+                        if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 3)
+                        {
+                            GameControl.m_Current.m_Data.m_Weapons[3]--;
+                        }
                     }
                     break;
 
                 case 4: // Bomb
                     yield return new WaitForSeconds(0.2f);
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null)
+                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 4 &&
+                        GameControl.m_Current.m_Contents.m_Equipment[4] != null && GameControl.m_Current.m_Contents.m_Equipment[4].m_Prefab != null)
                     {
                         Vector3 spawnPos = m_HitPoint != null ? m_HitPoint.position : transform.position + transform.forward + Vector3.up;
                         GameObject obj1 = Instantiate(GameControl.m_Current.m_Contents.m_Equipment[4].m_Prefab);
@@ -367,7 +392,10 @@ namespace SurvivalGame
                             body.AddForce(4f * transform.forward + new Vector3(0f, 6f, 0f), ForceMode.VelocityChange);
                             body.angularVelocity = obj1.transform.rotation * new Vector3(20f, 0f, 0f);
                         }
-                        GameControl.m_Current.m_Data.m_Weapons[4]--;
+                        if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 4)
+                        {
+                            GameControl.m_Current.m_Data.m_Weapons[4]--;
+                        }
                     }
                     break;
             }
@@ -462,6 +490,11 @@ namespace SurvivalGame
 
         public void HitImpulse(Vector3 dir)
         {
+            if (float.IsNaN(dir.x) || float.IsInfinity(dir.x) ||
+                float.IsNaN(dir.y) || float.IsInfinity(dir.y) ||
+                float.IsNaN(dir.z) || float.IsInfinity(dir.z))
+                return;
+
             if (m_PlayerController != null && m_PlayerController.enabled)
             {
                 m_PlayerController.Move(dir);

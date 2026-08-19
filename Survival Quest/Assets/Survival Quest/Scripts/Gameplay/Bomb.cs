@@ -20,11 +20,12 @@ public class Bomb : MonoBehaviour
 
     public void Explode()
     {
-        GameObject obj = Instantiate(m_ExplodePrefab);
-        obj.transform.position = transform.position;
-        obj.transform.rotation = transform.rotation;
-
-        //CameraControl.Current.StartShake(.4f, .4f);
+        if (m_ExplodePrefab != null)
+        {
+            GameObject obj = Instantiate(m_ExplodePrefab);
+            obj.transform.position = transform.position;
+            obj.transform.rotation = transform.rotation;
+        }
 
         Destroy(gameObject);
     }

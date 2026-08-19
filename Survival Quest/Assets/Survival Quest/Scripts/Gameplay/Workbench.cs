@@ -19,17 +19,23 @@ public class Workbench : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.gameObject.tag == "Player")
+        if (other != null && other.gameObject.CompareTag("Player"))
         {
-            Player.m_Current.isNearWorkbench = true;
+            if (Player.m_Current != null)
+            {
+                Player.m_Current.isNearWorkbench = true;
+            }
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if(other.gameObject.tag == "Player")
+        if (other != null && other.gameObject.CompareTag("Player"))
         {
-            Player.m_Current.isNearWorkbench = false;
+            if (Player.m_Current != null)
+            {
+                Player.m_Current.isNearWorkbench = false;
+            }
         }
     }
 }

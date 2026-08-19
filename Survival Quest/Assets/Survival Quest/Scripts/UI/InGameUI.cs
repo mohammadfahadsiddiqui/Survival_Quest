@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -58,157 +58,188 @@ namespace SurvivalGame.UI
 
         void Start()
         {
-            Panel_Crafting.SetActive(false);
+            if (Panel_Crafting != null)
+            {
+                Panel_Crafting.SetActive(false);
+            }
             Btn_SelectItem(0);
         }
 
         void Update()
         {
-            for (int i = 0; i < Text_ResourcesCount.Length; i++)
+            if (m_DataStorage != null && m_DataStorage.m_Resources != null && Text_ResourcesCount != null)
             {
-                Text_ResourcesCount[i].text = m_DataStorage.m_Resources[i].ToString();
-            }
-
-            for (int i = 0;i<5;i++)
-            {
-                if (m_DataStorage.m_Weapons[i]>0)
+                for (int i = 0; i < Text_ResourcesCount.Length && i < m_DataStorage.m_Resources.Length; i++)
                 {
-                    m_WeaponImages[i].color = Color.white;
-                }
-                else
-                {
-                    m_WeaponImages[i].color = new Color(.6f, .6f, .6f, .5f);
+                    if (Text_ResourcesCount[i] != null)
+                        Text_ResourcesCount[i].text = m_DataStorage.m_Resources[i].ToString();
                 }
             }
-            
 
-            //Text_TargetCounter.text = GameControl.Current.m_TargetDestroyedCount + " / " + GameControl.Current.m_MaxTargetCount;
-
-            Text_LifeCounter.text = ((int)Player.m_Current.m_Health).ToString();
-
-
-            if(Player.m_Current.isNearWorkbench)
+            if (m_DataStorage != null && m_DataStorage.m_Weapons != null && m_WeaponImages != null)
             {
-                Button_CraftingMenu.gameObject.SetActive(true);
-            }
-            else
-            {
-                Button_CraftingMenu.gameObject.SetActive(false);
-            }
-
-            if(Panel_Crafting.gameObject.activeSelf)
-            {
-                Button_CraftingMenu.gameObject.SetActive(false);
+                for (int i = 0; i < 5 && i < m_WeaponImages.Length && i < m_DataStorage.m_Weapons.Length; i++)
+                {
+                    if (m_WeaponImages[i] != null)
+                    {
+                        if (m_DataStorage.m_Weapons[i] > 0)
+                        {
+                            m_WeaponImages[i].color = Color.white;
+                        }
+                        else
+                        {
+                            m_WeaponImages[i].color = new Color(.6f, .6f, .6f, .5f);
+                        }
+                    }
+                }
             }
 
-            for (int i = 0; i < 2; i++)
+            if (Player.m_Current != null)
             {
-                Text_SwordResources[i].text = m_Contents.m_Equipment[1].m_RequiredResources[i].ToString();
-                Text_HammerResources[i].text = m_Contents.m_Equipment[2].m_RequiredResources[i].ToString();
-                Text_TrapResources[i].text = m_Contents.m_Equipment[3].m_RequiredResources[i].ToString();
-                Text_BombResources[i].text = m_Contents.m_Equipment[4].m_RequiredResources[i].ToString();
+                if (Text_LifeCounter != null)
+                {
+                    Text_LifeCounter.text = ((int)Player.m_Current.m_Health).ToString();
+                }
+
+                if (Button_CraftingMenu != null)
+                {
+                    bool showBtn = Player.m_Current.isNearWorkbench;
+                    if (Panel_Crafting != null && Panel_Crafting.activeSelf)
+                    {
+                        showBtn = false;
+                    }
+                    Button_CraftingMenu.gameObject.SetActive(showBtn);
+                }
             }
-            
+
+            if (m_Contents != null && m_Contents.m_Equipment != null)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    if (Text_SwordResources != null && i < Text_SwordResources.Length && Text_SwordResources[i] != null &&
+                        m_Contents.m_Equipment.Length > 1 && m_Contents.m_Equipment[1] != null &&
+                        m_Contents.m_Equipment[1].m_RequiredResources != null &&
+                        m_Contents.m_Equipment[1].m_RequiredResources.Length > i)
+                    {
+                        Text_SwordResources[i].text = m_Contents.m_Equipment[1].m_RequiredResources[i].ToString();
+                    }
+
+                    if (Text_HammerResources != null && i < Text_HammerResources.Length && Text_HammerResources[i] != null &&
+                        m_Contents.m_Equipment.Length > 2 && m_Contents.m_Equipment[2] != null &&
+                        m_Contents.m_Equipment[2].m_RequiredResources != null &&
+                        m_Contents.m_Equipment[2].m_RequiredResources.Length > i)
+                    {
+                        Text_HammerResources[i].text = m_Contents.m_Equipment[2].m_RequiredResources[i].ToString();
+                    }
+
+                    if (Text_TrapResources != null && i < Text_TrapResources.Length && Text_TrapResources[i] != null &&
+                        m_Contents.m_Equipment.Length > 3 && m_Contents.m_Equipment[3] != null &&
+                        m_Contents.m_Equipment[3].m_RequiredResources != null &&
+                        m_Contents.m_Equipment[3].m_RequiredResources.Length > i)
+                    {
+                        Text_TrapResources[i].text = m_Contents.m_Equipment[3].m_RequiredResources[i].ToString();
+                    }
+
+                    if (Text_BombResources != null && i < Text_BombResources.Length && Text_BombResources[i] != null &&
+                        m_Contents.m_Equipment.Length > 4 && m_Contents.m_Equipment[4] != null &&
+                        m_Contents.m_Equipment[4].m_RequiredResources != null &&
+                        m_Contents.m_Equipment[4].m_RequiredResources.Length > i)
+                    {
+                        Text_BombResources[i].text = m_Contents.m_Equipment[4].m_RequiredResources[i].ToString();
+                    }
+                }
+            }
         }
 
       
 
         public void Btn_SelectItem(int num)
         {
-            
-            //ThrowControl.m_Main.ObjectNum = num;
-            
-            
-            switch(num)
+            if (num < 0 || num > 4) return;
+
+            if (m_SelectionFrames != null)
             {
-                case 0:
-                    for (int i = 0; i < m_SelectionFrames.Length; i++)
+                for (int i = 0; i < m_SelectionFrames.Length; i++)
+                {
+                    if (m_SelectionFrames[i] != null)
                     {
                         m_SelectionFrames[i].gameObject.SetActive(false);
                     }
-                    Player.m_Current.SelectWeapon(num);
-                    Player.m_Current.m_WeaponInHand = 0;
-                    m_SelectionFrames[num].gameObject.SetActive(true);
-                    break;
-                case 1:
-                    
-                    if (GameControl.m_Current.m_Data.m_Weapons[0] > 0)
-                    {
-                        for (int i = 0; i < m_SelectionFrames.Length; i++)
-                        {
-                            m_SelectionFrames[i].gameObject.SetActive(false);
-                        }
-                        Player.m_Current.SelectWeapon(num);
-                        Player.m_Current.m_WeaponInHand = 1;
-                        m_SelectionFrames[num].gameObject.SetActive(true);
-                    }
-                    break;
-                case 2:
-                    if (GameControl.m_Current.m_Data.m_Weapons[1] > 0)
-                    {
-                        for (int i = 0; i < m_SelectionFrames.Length; i++)
-                        {
-                            m_SelectionFrames[i].gameObject.SetActive(false);
-                        }
-                        Player.m_Current.SelectWeapon(num);
-                        Player.m_Current.m_WeaponInHand = 2;
-                        m_SelectionFrames[num].gameObject.SetActive(true);
-                    }
-                    
-                    break;
-                case 3:
-                    if (GameControl.m_Current.m_Data.m_Weapons[2] > 0)
-                    {
-                        for (int i = 0; i < m_SelectionFrames.Length; i++)
-                        {
-                            m_SelectionFrames[i].gameObject.SetActive(false);
-                        }
-                        Player.m_Current.SelectWeapon(num);
-                        Player.m_Current.m_WeaponInHand = 3;
-                        m_SelectionFrames[num].gameObject.SetActive(true);
-                    }
-                    
-                    break;
-                case 4:
-                    if (GameControl.m_Current.m_Data.m_Weapons[3] > 0)
-                    {
-                        for (int i = 0; i < m_SelectionFrames.Length; i++)
-                        {
-                            m_SelectionFrames[i].gameObject.SetActive(false);
-                        }
-                        Player.m_Current.SelectWeapon(num);
-                        Player.m_Current.m_WeaponInHand = 4;
-                        m_SelectionFrames[num].gameObject.SetActive(true);
-                    }
-                    
-                    break;
-
+                }
             }
-            
+
+            bool canSelect = false;
+            if (num == 0)
+            {
+                canSelect = true;
+            }
+            else
+            {
+                if (GameControl.m_Current != null && GameControl.m_Current.m_Data != null &&
+                    GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > num &&
+                    GameControl.m_Current.m_Data.m_Weapons[num] > 0)
+                {
+                    canSelect = true;
+                }
+            }
+
+            if (canSelect)
+            {
+                if (Player.m_Current != null)
+                {
+                    Player.m_Current.SelectWeapon(num);
+                    Player.m_Current.m_WeaponInHand = num;
+                }
+                if (m_SelectionFrames != null && num < m_SelectionFrames.Length && m_SelectionFrames[num] != null)
+                {
+                    m_SelectionFrames[num].gameObject.SetActive(true);
+                }
+            }
         }
 
         public void Btn_CraftWeapon(int num)
         {
-            if (m_DataStorage.m_Resources[0] >= m_Contents.m_Equipment[num].m_RequiredResources[0] && m_DataStorage.m_Resources[1] >= m_Contents.m_Equipment[num].m_RequiredResources[1])
+            if (m_DataStorage != null && m_DataStorage.m_Resources != null && m_DataStorage.m_Resources.Length >= 2 &&
+                m_Contents != null && m_Contents.m_Equipment != null && m_Contents.m_Equipment.Length > num &&
+                m_Contents.m_Equipment[num] != null && m_Contents.m_Equipment[num].m_RequiredResources != null &&
+                m_Contents.m_Equipment[num].m_RequiredResources.Length >= 2)
             {
-                GameControl.m_Current.m_Data.m_Weapons[num]++;
-                m_DataStorage.m_Resources[0] -= m_Contents.m_Equipment[num].m_RequiredResources[0];
-                m_DataStorage.m_Resources[1] -= m_Contents.m_Equipment[num].m_RequiredResources[1];
+                if (m_DataStorage.m_Resources[0] >= m_Contents.m_Equipment[num].m_RequiredResources[0] &&
+                    m_DataStorage.m_Resources[1] >= m_Contents.m_Equipment[num].m_RequiredResources[1])
+                {
+                    if (GameControl.m_Current != null && GameControl.m_Current.m_Data != null &&
+                        GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > num)
+                    {
+                        GameControl.m_Current.m_Data.m_Weapons[num]++;
+                    }
+                    m_DataStorage.m_Resources[0] -= m_Contents.m_Equipment[num].m_RequiredResources[0];
+                    m_DataStorage.m_Resources[1] -= m_Contents.m_Equipment[num].m_RequiredResources[1];
+                }
             }
-            
         }
 
-      
         public void Btn_OpenCraftMenu()
         {
-            Panel_Crafting.SetActive(true);
-            Player.m_Current.m_CanMove = false;
+            if (Panel_Crafting != null)
+            {
+                Panel_Crafting.SetActive(true);
+            }
+            if (Player.m_Current != null)
+            {
+                Player.m_Current.m_CanMove = false;
+            }
         }
 
         public void Btn_CloseCraftMenu()
         {
-            Panel_Crafting.SetActive(false);
-            Player.m_Current.m_CanMove = true;
+            if (Panel_Crafting != null)
+            {
+                Panel_Crafting.SetActive(false);
+            }
+            if (Player.m_Current != null)
+            {
+                Player.m_Current.m_CanMove = true;
+            }
         }
 
 

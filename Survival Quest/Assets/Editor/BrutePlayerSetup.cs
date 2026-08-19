@@ -5,21 +5,11 @@ using System.Collections.Generic;
 using SurvivalGame;
 
 /// <summary>
-/// Automatically sets up the Brute character as the Player prefab.
-/// Runs automatically on compile / editor launch via [InitializeOnLoad],
-/// and can also be triggered manually via: Tools -> Setup Brute Player.
+/// Sets up the Brute character as the Player prefab.
+/// Can be triggered manually via: Tools -> Setup Brute Player.
 /// </summary>
-[InitializeOnLoad]
 public static class BrutePlayerSetup
 {
-    static BrutePlayerSetup()
-    {
-        EditorApplication.delayCall += () =>
-        {
-            SetupBrutePlayer();
-        };
-    }
-
     [MenuItem("Tools/Setup Brute Player")]
     public static void SetupBrutePlayer()
     {
@@ -79,6 +69,12 @@ public static class BrutePlayerSetup
 
             anim.runtimeAnimatorController = bruteController;
             anim.applyRootMotion = false;
+
+            Animator fbxAnim = bruteFbx.GetComponent<Animator>();
+            if (fbxAnim != null && fbxAnim.avatar != null)
+            {
+                anim.avatar = fbxAnim.avatar;
+            }
 
             // 4. Find right hand bone
             Transform rightHand = FindRightHand(bruteGO.transform);

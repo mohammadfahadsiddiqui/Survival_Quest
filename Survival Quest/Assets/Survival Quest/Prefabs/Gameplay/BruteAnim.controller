@@ -243,7 +243,9 @@ AnimatorState:
   m_Name: hit-1
   m_Speed: 1
   m_CycleOffset: 0
-  m_Transitions: []
+  m_Transitions:
+  - {fileID: 4444444444444444444}
+  - {fileID: 5555555555555555555}
   m_StateMachineBehaviours: []
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0

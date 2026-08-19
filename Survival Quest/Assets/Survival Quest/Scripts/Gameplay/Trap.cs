@@ -19,10 +19,18 @@ public class Trap : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.gameObject.tag == "NormalEnemy")
+        if (other != null && other.gameObject.CompareTag("NormalEnemy"))
         {
-            other.gameObject.GetComponent<NormalEnemy>().DisableMovement();
-            Destroy(gameObject, 1);
+            NormalEnemy enemy = other.gameObject.GetComponent<NormalEnemy>();
+            if (enemy == null)
+            {
+                enemy = other.gameObject.GetComponentInParent<NormalEnemy>();
+            }
+            if (enemy != null)
+            {
+                enemy.DisableMovement();
+            }
+            Destroy(gameObject, 1f);
         }
     }
 }
