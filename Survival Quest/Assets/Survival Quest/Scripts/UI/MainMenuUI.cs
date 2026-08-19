@@ -9,7 +9,10 @@ using UnityEngine.InputSystem.UI;
 
 namespace SurvivalGame.UI
 {
-    /// <summary>Runtime-generated main menu for Survival Quest.</summary>
+    /// <summary>
+    /// Runtime-generated Survival Quest main menu.
+    /// The gameplay scene remains visible behind the UI, so the menu always matches the game's world.
+    /// </summary>
     public class MainMenuUI : MonoBehaviour
     {
         [SerializeField] private DataStorage m_DataStorage;
@@ -33,7 +36,7 @@ namespace SurvivalGame.UI
             if (SceneManager.GetActiveScene().name != "SampleScene") return;
             if (FindFirstObjectByType<MainMenuUI>() != null) return;
 
-            var host = new GameObject("Survival Quest - Main Menu");
+            GameObject host = new GameObject("Survival Quest - Main Menu");
             DontDestroyOnLoad(host);
             host.AddComponent<MainMenuUI>();
         }
@@ -45,34 +48,43 @@ namespace SurvivalGame.UI
                 Destroy(gameObject);
                 return;
             }
+
             s_Instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
-        private void Start() => BuildMenu();
+        private void Start()
+        {
+            BuildMenu();
+        }
 
         private void BuildMenu()
         {
             if (m_Canvas != null) return;
+
             EnsureEventSystem();
 
-            m_Canvas = new GameObject("Main Menu Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster)).GetComponent<Canvas>();
+            GameObject canvasObject = new GameObject("Main Menu Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            m_Canvas = canvasObject.GetComponent<Canvas>();
             m_Canvas.transform.SetParent(transform, false);
             m_Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             m_Canvas.sortingOrder = 500;
 
-            var scaler = m_Canvas.GetComponent<CanvasScaler>();
+            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1600, 900);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.referenceResolution = new Vector2(1600f, 900f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            m_MenuRoot = FullRect("Menu", m_Canvas.transform);
-            AddImage(m_MenuRoot.transform, "Left Shade", new Color(0.02f, 0.07f, 0.03f, 0.62f), new Vector2(0, 0), new Vector2(0.48f, 1), Vector2.zero, Vector2.zero);
-            AddImage(m_MenuRoot.transform, "Right Shade", new Color(0.01f, 0.025f, 0.01f, 0.45f), new Vector2(0.58f, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero);
+            m_MenuRoot = CreateRect("Menu", m_Canvas.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            // Semi-transparent shades preserve the actual low-poly game scene behind the menu.
+            AddImage(m_MenuRoot.transform, "Left Shade", new Color(0.015f, 0.045f, 0.018f, 0.62f),
+                new Vector2(0f, 0f), new Vector2(0.50f, 1f), Vector2.zero, Vector2.zero);
+            AddImage(m_MenuRoot.transform, "Right Shade", new Color(0.01f, 0.02f, 0.008f, 0.35f),
+                new Vector2(0.56f, 0f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero);
 
             BuildLeftMenu();
-            BuildInfoCards();
+            BuildCards();
             BuildFooter();
             BuildSettings();
 
@@ -83,22 +95,27 @@ namespace SurvivalGame.UI
 
         private void BuildLeftMenu()
         {
-            var title = AddText(m_MenuRoot.transform, "Title", "SURVIVAL QUEST", 64, FontStyle.Bold, new Color(0.98f, 0.96f, 0.82f), TextAnchor.MiddleLeft,
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(58, -38), new Vector2(650, 78));
-            AddShadow(title.gameObject, 5, 5, 0.9f);
+            Text title = AddText(m_MenuRoot.transform, "Title", "SURVIVAL QUEST", 62, FontStyle.Bold,
+                new Color(0.98f, 0.95f, 0.78f), TextAnchor.MiddleLeft,
+                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(55f, -48f), new Vector2(620f, 75f));
+            AddShadow(title.gameObject, new Vector2(5f, -5f), 0.9f);
 
-            var subtitle = AddText(m_MenuRoot.transform, "Subtitle", "SURVIVE • EXPLORE • CRAFT • CONQUER", 18, FontStyle.Bold, new Color(0.73f, 0.92f, 0.38f), TextAnchor.MiddleLeft,
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(62, -104), new Vector2(560, 32));
-            AddShadow(subtitle.gameObject, 2, 2, 0.8f);
+            Text subtitle = AddText(m_MenuRoot.transform, "Subtitle", "SURVIVE • EXPLORE • CRAFT • CONQUER", 18, FontStyle.Bold,
+                new Color(0.72f, 0.90f, 0.35f), TextAnchor.MiddleLeft,
+                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -102f), new Vector2(550f, 30f));
+            AddShadow(subtitle.gameObject, new Vector2(2f, -2f), 0.7f);
 
-            AddImage(m_MenuRoot.transform, "Title Line", new Color(0.56f, 0.35f, 0.12f, 0.9f), new Vector2(0, 1), new Vector2(0, 1), new Vector2(60, -132), new Vector2(430, 4));
+            AddImage(m_MenuRoot.transform, "Title Line", new Color(0.56f, 0.35f, 0.12f, 0.95f),
+                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(60f, -132f), new Vector2(430f, 4f));
 
-            var menu = Rect("Menu Buttons", m_MenuRoot.transform, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(55, -20), new Vector2(530, 485));
+            GameObject menu = CreateRect("Menu Buttons", m_MenuRoot.transform,
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(55f, -10f), new Vector2(520f, 500f));
+
             string[] labels = { "PLAY", "CONTINUE", "NEW GAME", "SETTINGS", "EXIT" };
-
             for (int i = 0; i < labels.Length; i++)
             {
-                var button = WoodButton(menu.transform, labels[i], new Vector2(265, 190 - i * 90), new Vector2(500, 72));
+                Button button = CreateWoodButton(menu.transform, labels[i], new Vector2(260f, 190f - i * 88f), new Vector2(490f, 68f));
+
                 if (i == 0 || i == 2) button.onClick.AddListener(StartNewJourney);
                 else if (i == 1)
                 {
@@ -109,99 +126,114 @@ namespace SurvivalGame.UI
                 else button.onClick.AddListener(QuitGame);
             }
 
-            m_Status = AddText(menu.transform, "Status", "", 17, FontStyle.Bold, new Color(1f, 0.78f, 0.25f), TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(10, 8), new Vector2(500, 28));
+            m_Status = AddText(menu.transform, "Status", "", 16, FontStyle.Bold, new Color(1f, 0.75f, 0.20f), TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(5f, 5f), new Vector2(490f, 25f));
+
             RefreshContinueState();
         }
 
-        private void BuildInfoCards()
+        private void BuildCards()
         {
-            var top = Card(new Vector2(-55, 125));
-            AddText(top.transform, "Title", "SURVIVE THE UNKNOWN", 27, FontStyle.Bold, Color.white, TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(26, 30), new Vector2(480, 42));
-            AddText(top.transform, "Body", "Explore • Gather • Craft • Survive", 17, FontStyle.Normal, new Color(0.9f, 0.95f, 0.78f), TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(26, 8), new Vector2(480, 30));
-            WorldIcon(top.transform, new Vector2(445, 175), false);
+            GameObject top = CreateCard(new Vector2(-55f, 130f));
+            AddText(top.transform, "Title", "SURVIVE THE UNKNOWN", 26, FontStyle.Bold, Color.white, TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(25f, 42f), new Vector2(455f, 40f));
+            AddText(top.transform, "Body", "Explore • Gather • Craft • Survive", 17, FontStyle.Normal,
+                new Color(0.88f, 0.94f, 0.75f), TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(25f, 10f), new Vector2(420f, 30f));
+            AddText(top.transform, "World", "WILDERNESS", 13, FontStyle.Bold,
+                new Color(0.72f, 0.90f, 0.35f), TextAnchor.MiddleRight,
+                Vector2.zero, Vector2.zero, new Vector2(-25f, -95f), new Vector2(160f, 24f));
 
-            var bottom = Card(new Vector2(-55, -190));
-            AddText(bottom.transform, "Title", "YOUR JOURNEY", 27, FontStyle.Bold, Color.white, TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(26, 32), new Vector2(480, 42));
+            GameObject bottom = CreateCard(new Vector2(-55f, -185f));
+            AddText(bottom.transform, "Title", "YOUR JOURNEY", 26, FontStyle.Bold, Color.white, TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(25f, 42f), new Vector2(455f, 40f));
             AddText(bottom.transform, "Save", HasSave() ? "SAVE DATA FOUND" : "NO SAVE DATA", 18, FontStyle.Bold,
-                HasSave() ? new Color(0.72f, 0.93f, 0.38f) : new Color(1f, 0.72f, 0.24f), TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(26, -8), new Vector2(300, 30));
-            AddText(bottom.transform, "Body", "Begin a new survival expedition.", 17, FontStyle.Normal, new Color(0.88f, 0.91f, 0.82f), TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(26, -42), new Vector2(430, 30));
-            WorldIcon(bottom.transform, new Vector2(445, 165), true);
+                HasSave() ? new Color(0.72f, 0.93f, 0.38f) : new Color(1f, 0.70f, 0.20f), TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(25f, -8f), new Vector2(350f, 30f));
+            AddText(bottom.transform, "Body", "Begin a new survival expedition.", 17, FontStyle.Normal,
+                new Color(0.86f, 0.90f, 0.78f), TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(25f, -45f), new Vector2(430f, 30f));
         }
 
-        private GameObject Card(Vector2 position)
+        private GameObject CreateCard(Vector2 position)
         {
-            var go = Rect("Info Card", m_MenuRoot.transform, new Vector2(1, 0.5f), new Vector2(1, 0.5f), position, new Vector2(545, 270));
-            var image = go.AddComponent<Image>();
-            image.sprite = WoodSprite(new Color(0.13f, 0.17f, 0.09f), new Color(0.05f, 0.07f, 0.035f));
+            GameObject card = CreateRect("Info Card", m_MenuRoot.transform,
+                new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), position, new Vector2(545f, 250f));
+
+            Image image = card.AddComponent<Image>();
+            image.sprite = CreateWoodSprite(new Color(0.12f, 0.16f, 0.08f), new Color(0.035f, 0.05f, 0.025f));
             image.type = Image.Type.Sliced;
-            image.color = new Color(1, 1, 1, 0.94f);
-            var outline = go.AddComponent<Outline>();
-            outline.effectColor = new Color(0.55f, 0.37f, 0.16f, 0.9f);
-            outline.effectDistance = new Vector2(2, -2);
-            AddShadow(go, 7, -7, 0.75f);
-            return go;
+            image.color = new Color(1f, 1f, 1f, 0.92f);
+
+            Outline outline = card.AddComponent<Outline>();
+            outline.effectColor = new Color(0.52f, 0.34f, 0.14f, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            AddShadow(card, new Vector2(6f, -6f), 0.7f);
+            return card;
         }
 
         private void BuildFooter()
         {
-            AddText(m_MenuRoot.transform, "Version", "VERSION 0.1", 14, FontStyle.Normal, new Color(0.8f, 0.9f, 0.62f, 0.85f), TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(34, 32), new Vector2(180, 25));
-            AddText(m_MenuRoot.transform, "Copyright", "© SURVIVAL QUEST", 14, FontStyle.Normal, new Color(0.8f, 0.9f, 0.62f, 0.7f), TextAnchor.MiddleLeft,
-                Vector2.zero, Vector2.zero, new Vector2(34, 8), new Vector2(220, 25));
+            AddText(m_MenuRoot.transform, "Version", "VERSION 0.1", 13, FontStyle.Normal,
+                new Color(0.78f, 0.88f, 0.58f, 0.85f), TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(32f, 35f), new Vector2(180f, 25f));
+            AddText(m_MenuRoot.transform, "Copyright", "© SURVIVAL QUEST", 13, FontStyle.Normal,
+                new Color(0.78f, 0.88f, 0.58f, 0.70f), TextAnchor.MiddleLeft,
+                Vector2.zero, Vector2.zero, new Vector2(32f, 10f), new Vector2(220f, 25f));
 
-            var audio = SmallButton("♪", new Vector2(-135, 35));
-            audio.onClick.AddListener(ToggleMute);
-            var fullscreen = SmallButton("⛶", new Vector2(-55, 35));
+            Button mute = CreateSmallButton("♪", new Vector2(-135f, 35f));
+            mute.onClick.AddListener(ToggleMute);
+            Button fullscreen = CreateSmallButton("[]", new Vector2(-55f, 35f));
             fullscreen.onClick.AddListener(ToggleFullscreen);
         }
 
         private void BuildSettings()
         {
-            m_SettingsRoot = Rect("Settings Panel", m_MenuRoot.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(720, 520));
-            var bg = m_SettingsRoot.AddComponent<Image>();
-            bg.sprite = WoodSprite(new Color(0.09f, 0.13f, 0.06f), new Color(0.025f, 0.04f, 0.02f));
+            m_SettingsRoot = CreateRect("Settings Panel", m_MenuRoot.transform,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(720f, 500f));
+
+            Image bg = m_SettingsRoot.AddComponent<Image>();
+            bg.sprite = CreateWoodSprite(new Color(0.09f, 0.13f, 0.055f), new Color(0.025f, 0.035f, 0.015f));
             bg.type = Image.Type.Sliced;
-            var outline = m_SettingsRoot.AddComponent<Outline>();
-            outline.effectColor = new Color(0.6f, 0.42f, 0.18f, 0.95f);
-            outline.effectDistance = new Vector2(3, -3);
 
-            AddText(m_SettingsRoot.transform, "Title", "SETTINGS", 40, FontStyle.Bold, new Color(0.96f, 0.9f, 0.7f), TextAnchor.MiddleCenter,
-                new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -55), new Vector2(600, 60));
-            AddText(m_SettingsRoot.transform, "VolumeLabel", "MASTER VOLUME", 18, FontStyle.Bold, Color.white, TextAnchor.MiddleLeft,
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-250, 55), new Vector2(500, 35));
+            Outline outline = m_SettingsRoot.AddComponent<Outline>();
+            outline.effectColor = new Color(0.60f, 0.42f, 0.18f, 0.95f);
+            outline.effectDistance = new Vector2(3f, -3f);
 
-            var sliderGo = Rect("Volume Slider", m_SettingsRoot.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 5), new Vector2(500, 36));
-            m_VolumeSlider = sliderGo.AddComponent<Slider>();
-            m_VolumeSlider.minValue = 0;
-            m_VolumeSlider.maxValue = 1;
-            m_VolumeSlider.value = PlayerPrefs.GetFloat(VolumeKey, 1);
+            AddText(m_SettingsRoot.transform, "Title", "SETTINGS", 38, FontStyle.Bold,
+                new Color(0.96f, 0.90f, 0.70f), TextAnchor.MiddleCenter,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(600f, 55f));
+            AddText(m_SettingsRoot.transform, "Volume", "MASTER VOLUME", 18, FontStyle.Bold,
+                Color.white, TextAnchor.MiddleLeft,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-250f, 55f), new Vector2(500f, 32f));
+
+            GameObject sliderObject = CreateRect("Volume Slider", m_SettingsRoot.transform,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 5f), new Vector2(500f, 36f));
+            m_VolumeSlider = sliderObject.AddComponent<Slider>();
+            m_VolumeSlider.minValue = 0f;
+            m_VolumeSlider.maxValue = 1f;
+            m_VolumeSlider.value = PlayerPrefs.GetFloat(VolumeKey, 1f);
             m_VolumeSlider.onValueChanged.AddListener(SetVolume);
 
-            var track = Rect("Track", sliderGo.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).AddComponent<Image>();
-            track.color = new Color(0.12f, 0.08f, 0.04f);
-            track.raycastTarget = false;
+            GameObject trackObject = CreateRect("Track", sliderObject.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            Image track = trackObject.AddComponent<Image>();
+            track.color = new Color(0.12f, 0.08f, 0.035f);
 
-            var fillArea = Rect("Fill Area", sliderGo.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            fillArea.GetComponent<RectTransform>().offsetMin = new Vector2(4, 8);
-            fillArea.GetComponent<RectTransform>().offsetMax = new Vector2(-4, -8);
-            var fill = Rect("Fill", fillArea.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).AddComponent<Image>();
-            fill.color = new Color(0.72f, 0.55f, 0.2f);
+            GameObject fillObject = CreateRect("Fill", sliderObject.transform, Vector2.zero, new Vector2(0.5f, 1f), Vector2.zero, Vector2.zero);
+            Image fill = fillObject.AddComponent<Image>();
+            fill.color = new Color(0.72f, 0.55f, 0.20f);
 
-            var handleGo = Rect("Handle", sliderGo.transform, new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(30, 30));
-            var handle = handleGo.AddComponent<Image>();
+            GameObject handleObject = CreateRect("Handle", sliderObject.transform,
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(30f, 30f));
+            Image handle = handleObject.AddComponent<Image>();
             handle.color = new Color(0.94f, 0.82f, 0.48f);
-            m_VolumeSlider.fillRect = fill.GetComponent<RectTransform>();
-            m_VolumeSlider.handleRect = handleGo.GetComponent<RectTransform>();
-            handleGo.transform.SetAsLastSibling();
 
-            var back = WoodButton(m_SettingsRoot.transform, "BACK", new Vector2(0, -155), new Vector2(320, 68));
+            m_VolumeSlider.fillRect = fillObject.GetComponent<RectTransform>();
+            m_VolumeSlider.handleRect = handleObject.GetComponent<RectTransform>();
+
+            Button back = CreateWoodButton(m_SettingsRoot.transform, "BACK", new Vector2(0f, -150f), new Vector2(300f, 65f));
             back.onClick.AddListener(CloseSettings);
+
             m_SettingsRoot.SetActive(false);
         }
 
@@ -209,7 +241,6 @@ namespace SurvivalGame.UI
         {
             m_SettingsRoot.SetActive(true);
             m_MenuRoot.transform.Find("Menu Buttons").gameObject.SetActive(false);
-            SetStatus("");
         }
 
         private void CloseSettings()
@@ -229,7 +260,7 @@ namespace SurvivalGame.UI
         {
             if (!HasSave())
             {
-                SetStatus("NO SAVE DATA — START A NEW JOURNEY");
+                if (m_Status != null) m_Status.text = "NO SAVE DATA — START A NEW JOURNEY";
                 return;
             }
             BeginGameplay();
@@ -239,7 +270,7 @@ namespace SurvivalGame.UI
         {
             if (m_GameStarted) return;
             m_GameStarted = true;
-            Time.timeScale = 1;
+            Time.timeScale = 1f;
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
             if (m_Canvas != null) Destroy(m_Canvas.gameObject);
@@ -257,10 +288,13 @@ namespace SurvivalGame.UI
 
         private void ToggleMute()
         {
-            AudioListener.volume = AudioListener.volume > 0.01f ? 0 : PlayerPrefs.GetFloat(VolumeKey, 1);
+            AudioListener.volume = AudioListener.volume > 0.01f ? 0f : PlayerPrefs.GetFloat(VolumeKey, 1f);
         }
 
-        private void ToggleFullscreen() => Screen.fullScreen = !Screen.fullScreen;
+        private void ToggleFullscreen()
+        {
+            Screen.fullScreen = !Screen.fullScreen;
+        }
 
         private void SetVolume(float value)
         {
@@ -271,144 +305,142 @@ namespace SurvivalGame.UI
 
         private void RefreshContinueState()
         {
-            if (m_ContinueButton == null) return;
-            m_ContinueButton.interactable = HasSave();
+            if (m_ContinueButton != null) m_ContinueButton.interactable = HasSave();
         }
 
-        private bool HasSave() => PlayerPrefs.GetInt(SaveKey, 0) == 1;
-        private void SetStatus(string message) { if (m_Status != null) m_Status.text = message; }
+        private bool HasSave()
+        {
+            return PlayerPrefs.GetInt(SaveKey, 0) == 1;
+        }
 
         private static void EnsureEventSystem()
         {
             if (FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>() != null) return;
-            var go = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
+
+            GameObject eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
 #if ENABLE_INPUT_SYSTEM
-            go.AddComponent<InputSystemUIInputModule>();
+            eventSystem.AddComponent<InputSystemUIInputModule>();
 #else
-            go.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
 #endif
         }
 
-        private static Button WoodButton(Transform parent, string label, Vector2 position, Vector2 size)
+        private static Button CreateWoodButton(Transform parent, string label, Vector2 position, Vector2 size)
         {
-            var go = Rect(label + " Button", parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, size);
-            var image = go.AddComponent<Image>();
-            image.sprite = WoodSprite(new Color(0.33f, 0.19f, 0.07f), new Color(0.11f, 0.055f, 0.018f));
+            GameObject buttonObject = CreateRect(label + " Button", parent,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, size);
+
+            Image image = buttonObject.AddComponent<Image>();
+            image.sprite = CreateWoodSprite(new Color(0.33f, 0.19f, 0.07f), new Color(0.10f, 0.05f, 0.015f));
             image.type = Image.Type.Sliced;
 
-            var button = go.AddComponent<Button>();
+            Button button = buttonObject.AddComponent<Button>();
             button.targetGraphic = image;
-            button.transition = Selectable.Transition.ColorTint;
-            var colors = button.colors;
-            colors.highlightedColor = new Color(1.12f, 1.03f, 0.78f);
+            ColorBlock colors = button.colors;
+            colors.highlightedColor = new Color(1f, 0.95f, 0.75f);
             colors.pressedColor = new Color(0.85f, 0.72f, 0.45f);
             colors.disabledColor = new Color(0.55f, 0.55f, 0.55f, 0.45f);
             button.colors = colors;
 
-            var text = AddText(go.transform, "Label", label, 31, FontStyle.Bold, new Color(0.96f, 0.9f, 0.72f), TextAnchor.MiddleCenter,
+            Text text = AddText(buttonObject.transform, "Label", label, 30, FontStyle.Bold,
+                new Color(0.96f, 0.90f, 0.72f), TextAnchor.MiddleCenter,
                 Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             text.raycastTarget = false;
-            AddShadow(go, 5, -5, 0.8f);
+            AddShadow(buttonObject, new Vector2(5f, -5f), 0.8f);
             return button;
         }
 
-        private Button SmallButton(string label, Vector2 position)
+        private Button CreateSmallButton(string label, Vector2 position)
         {
-            var go = Rect("Utility " + label, m_MenuRoot.transform, new Vector2(1, 0), new Vector2(1, 0), position, new Vector2(58, 58));
-            var image = go.AddComponent<Image>();
-            image.sprite = WoodSprite(new Color(0.22f, 0.13f, 0.05f), new Color(0.06f, 0.03f, 0.01f));
+            GameObject objectRoot = CreateRect("Utility " + label, m_MenuRoot.transform,
+                new Vector2(1f, 0f), new Vector2(1f, 0f), position, new Vector2(58f, 58f));
+            Image image = objectRoot.AddComponent<Image>();
+            image.sprite = CreateWoodSprite(new Color(0.22f, 0.13f, 0.05f), new Color(0.06f, 0.03f, 0.01f));
             image.type = Image.Type.Sliced;
-            var button = go.AddComponent<Button>();
+            Button button = objectRoot.AddComponent<Button>();
             button.targetGraphic = image;
-            var text = AddText(go.transform, "Icon", label, 26, FontStyle.Bold, new Color(0.95f, 0.9f, 0.72f), TextAnchor.MiddleCenter,
+
+            Text text = AddText(objectRoot.transform, "Icon", label, 24, FontStyle.Bold,
+                new Color(0.95f, 0.90f, 0.72f), TextAnchor.MiddleCenter,
                 Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             text.raycastTarget = false;
             return button;
         }
 
-        private static void WorldIcon(Transform parent, Vector2 position, bool campfire)
+        private static GameObject CreateRect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)
         {
-            var icon = AddImage(parent, "World Icon", campfire ? new Color(0.82f, 0.43f, 0.08f, 0.85f) : new Color(0.34f, 0.7f, 0.18f, 0.75f),
-                Vector2.zero, Vector2.zero, position, new Vector2(115, 115));
-            icon.raycastTarget = false;
-            var outline = icon.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.95f, 0.82f, 0.3f, 0.45f);
-            outline.effectDistance = new Vector2(3, -3);
-        }
-
-        private static GameObject FullRect(string name, Transform parent)
-        {
-            return Rect(name, parent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-        }
-
-        private static GameObject Rect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            var rt = go.GetComponent<RectTransform>();
-            rt.SetParent(parent, false);
-            rt.anchorMin = anchorMin;
-            rt.anchorMax = anchorMax;
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = position;
-            rt.sizeDelta = size;
+            GameObject go = new GameObject(name, typeof(RectTransform));
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
             return go;
         }
 
         private static Image AddImage(Transform parent, string name, Color color, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)
         {
-            var image = Rect(name, parent, anchorMin, anchorMax, position, size).AddComponent<Image>();
+            Image image = CreateRect(name, parent, anchorMin, anchorMax, position, size).AddComponent<Image>();
             image.color = color;
             return image;
         }
 
-        private static Text AddText(Transform parent, string name, string content, int size, FontStyle style, Color color, TextAnchor alignment,
-            Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 dimensions)
+        private static Text AddText(Transform parent, string name, string content, int fontSize, FontStyle style,
+            Color color, TextAnchor alignment, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)
         {
-            var text = Rect(name, parent, anchorMin, anchorMax, position, dimensions).AddComponent<Text>();
+            Text text = CreateRect(name, parent, anchorMin, anchorMax, position, size).AddComponent<Text>();
+
+            // Unity 6 removed Arial.ttf as a built-in runtime font. LegacyRuntime.ttf is the supported replacement.
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.text = content;
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            text.fontSize = size;
+            text.fontSize = fontSize;
             text.fontStyle = style;
             text.color = color;
             text.alignment = alignment;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = Mathf.Max(10, size - 10);
-            text.resizeTextMaxSize = size;
+            text.raycastTarget = false;
             return text;
         }
 
-        private static void AddShadow(GameObject go, float x, float y, float alpha)
+        private static void AddShadow(GameObject target, Vector2 distance, float alpha)
         {
-            var shadow = go.GetComponent<Shadow>() ?? go.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0, 0, 0, alpha);
-            shadow.effectDistance = new Vector2(x, y);
+            Shadow shadow = target.GetComponent<Shadow>();
+            if (shadow == null) shadow = target.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, alpha);
+            shadow.effectDistance = distance;
             shadow.useGraphicAlpha = true;
         }
 
-        private static Sprite WoodSprite(Color light, Color dark)
+        private static Sprite CreateWoodSprite(Color light, Color dark)
         {
             const int width = 128;
             const int height = 64;
-            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
             texture.wrapMode = TextureWrapMode.Clamp;
             texture.filterMode = FilterMode.Bilinear;
-            var pixels = new Color[width * height];
+
+            Color[] pixels = new Color[width * height];
             for (int y = 0; y < height; y++)
+            {
                 for (int x = 0; x < width; x++)
                 {
                     float grain = Mathf.PerlinNoise(x * 0.07f, y * 0.045f);
                     float lines = Mathf.Sin((x + y * 0.35f) * 0.18f) * 0.08f;
-                    pixels[y * width + x] = Color.Lerp(dark, light, Mathf.Clamp01(0.35f + grain * 0.55f + lines));
+                    float value = Mathf.Clamp01(0.35f + grain * 0.55f + lines);
+                    pixels[y * width + x] = Color.Lerp(dark, light, value);
                 }
+            }
+
             texture.SetPixels(pixels);
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 32f, 0,
-                SpriteMeshType.FullRect, new Vector4(14, 14, 14, 14));
+            return Sprite.Create(texture, new Rect(0f, 0f, width, height), new Vector2(0.5f, 0.5f), 32f, 0,
+                SpriteMeshType.FullRect, new Vector4(14f, 14f, 14f, 14f));
         }
 
-        // Kept for compatibility with existing scene button events.
+        // Compatibility with older scene button events.
         public void BtnExit() => QuitGame();
 
         public void BtnLevel(int num)
