@@ -67,9 +67,9 @@ namespace SurvivalGame.UI
         private void BuildMain()
         {
             Text title = TextUI(m_Root.transform, "Title", "SURVIVAL QUEST", 64, FontStyle.Bold, new Color(.98f,.94f,.77f), TextAnchor.MiddleLeft, new Vector2(.055f,.82f), new Vector2(.48f,.94f));
-            AddShadow(title, new Vector2(5,-5), .9f);
+            AddShadow(title.gameObject, new Vector2(5,-5), .9f);
             Text sub = TextUI(m_Root.transform, "Subtitle", "THE WILDERNESS DOESN'T FORGIVE", 17, FontStyle.Bold, new Color(.74f,.88f,.48f), TextAnchor.MiddleLeft, new Vector2(.058f,.775f), new Vector2(.48f,.82f));
-            AddShadow(sub, new Vector2(2,-2), .7f);
+            AddShadow(sub.gameObject, new Vector2(2,-2), .7f);
             AddImage(m_Root.transform, "Accent", new Color(.72f,.49f,.18f,.95f), new Vector2(.058f,.758f), new Vector2(.34f,.764f));
 
             GameObject menu = Rect("Menu", m_Root.transform, new Vector2(.055f,.17f), new Vector2(.44f,.73f));
