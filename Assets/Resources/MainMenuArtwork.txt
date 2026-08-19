@@ -1,0 +1,1 @@
+Use the exact supplied image file: MainMenuArtwork.png (1659 x 948). Place it at Assets/Resources/MainMenuArtwork.png. ReferenceMainMenuUI.cs loads this file directly as the complete menu artwork.
