@@ -1,22 +1,33 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Events;
+using SurvivalGame.ScriptableObjects;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem.UI;
 #endif
 
 namespace SurvivalGame.UI
 {
-    /// <summary>Standalone Survival Quest main menu. This component belongs only in MainMenu.unity.</summary>
+    /// <summary>
+    /// Self-contained Survival Quest main menu for MainMenu.unity.
+    /// Uses only runtime-generated Unity UI, so it does not require scene references or a Dropdown template.
+    /// </summary>
     public class MainMenuUI : MonoBehaviour
     {
-        private Canvas canvas;
-        private GameObject root;
-        private GameObject settings;
-        private Text status;
-        private Button continueButton;
-        private Toggle fullscreenToggle;
+        [SerializeField] private DataStorage m_DataStorage;
+        [SerializeField] private GameplayData m_GameplayData;
+
+        private Canvas m_Canvas;
+        private GameObject m_Root;
+        private GameObject m_Settings;
+        private Text m_Status;
+        private Button m_ContinueButton;
+        private Toggle m_InvertToggle;
+        private Toggle m_FullscreenToggle;
+        private Text m_QualityValue;
         private bool m_LoadingGame;
+        private bool m_Built;
 
         private const string GAME_SCENE = "SampleScene";
         private const string SAVE = "SurvivalQuest.SaveExists";
@@ -31,147 +42,364 @@ namespace SurvivalGame.UI
             Time.timeScale = 1f;
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
-            EnsureEventSystem();
+            EnsureSingleEventSystem();
         }
 
-        private void Start() => Build();
+        private void Start()
+        {
+            Build();
+        }
 
         private void Build()
         {
-            GameObject c = new GameObject("Main Menu Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvas = c.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 100;
+            if (m_Built) return;
+            m_Built = true;
 
-            CanvasScaler scaler = c.GetComponent<CanvasScaler>();
+            GameObject canvasObject = new GameObject("Main Menu Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            m_Canvas = canvasObject.GetComponent<Canvas>();
+            m_Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            m_Canvas.sortingOrder = 100;
+
+            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1600, 900);
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = .5f;
+            scaler.matchWidthOrHeight = 0.5f;
 
-            root = Rect("Root", canvas.transform, Vector2.zero, Vector2.one);
-            RawImage bg = Raw("Wilderness Background", root.transform, Vector2.zero, Vector2.one);
-            bg.texture = MakeBackground(960, 540);
-            bg.raycastTarget = false;
+            m_Root = Rect("Root", m_Canvas.transform, Vector2.zero, Vector2.one);
 
-            AddImage(root.transform, "Vignette", new Color(.01f,.015f,.008f,.30f), Vector2.zero, Vector2.one);
-            AddImage(root.transform, "LeftShade", new Color(.005f,.01f,.004f,.70f), new Vector2(0,0), new Vector2(.47f,1));
-            AddImage(root.transform, "RightShade", new Color(.005f,.008f,.003f,.45f), new Vector2(.70f,0), new Vector2(1,1));
+            // Low-poly Survival Quest backdrop. It intentionally uses the game's visual language.
+            RawImage background = Raw("Wilderness Background", m_Root.transform, Vector2.zero, Vector2.one);
+            background.texture = MakeLowPolyBackground(1280, 720);
 
-            Text title = TextUI(root.transform,"Title","SURVIVAL QUEST",58,FontStyle.Bold,new Color(.98f,.94f,.77f),TextAnchor.MiddleLeft,new Vector2(.045f,.82f),new Vector2(.49f,.94f));
-            Shadow(title.gameObject,new Vector2(5,-5),.95f);
-            Text sub = TextUI(root.transform,"Subtitle","THE WILDERNESS DOESN'T FORGIVE",16,FontStyle.Bold,new Color(.75f,.88f,.48f),TextAnchor.MiddleLeft,new Vector2(.048f,.77f),new Vector2(.49f,.82f));
-            Shadow(sub.gameObject,new Vector2(2,-2),.8f);
-            AddImage(root.transform,"Accent",new Color(.72f,.49f,.18f,.95f),new Vector2(.048f,.755f),new Vector2(.32f,.762f));
+            AddImage(m_Root.transform, "Cinematic Vignette", new Color(0f, 0.02f, 0f, 0.34f), Vector2.zero, Vector2.one);
+            AddImage(m_Root.transform, "Left Readability Shade", new Color(0.005f, 0.015f, 0.002f, 0.58f), new Vector2(0f, 0f), new Vector2(0.48f, 1f));
+            AddImage(m_Root.transform, "Right Readability Shade", new Color(0.005f, 0.012f, 0.002f, 0.36f), new Vector2(0.70f, 0f), new Vector2(1f, 1f));
 
-            GameObject menu = Rect("Menu",root.transform,new Vector2(.045f,.15f),new Vector2(.45f,.73f));
-            string[] labels = {"PLAY","CONTINUE","NEW GAME","SETTINGS","EXIT"};
-            for(int i=0;i<labels.Length;i++)
-            {
-                float top=.96f-i*.18f, bottom=top-.12f;
-                Button b=Wood(menu.transform,labels[i],new Vector2(.03f,bottom),new Vector2(.88f,top));
-                if(i==0||i==2) b.onClick.AddListener(StartNew);
-                else if(i==1){continueButton=b;b.onClick.AddListener(Continue);}
-                else if(i==3)b.onClick.AddListener(OpenSettings);
-                else b.onClick.AddListener(Quit);
-            }
-            status=TextUI(menu.transform,"Status","",12,FontStyle.Bold,new Color(1,.76f,.25f),TextAnchor.MiddleLeft,new Vector2(.03f,0),new Vector2(.90f,.055f));
-            RefreshContinue();
-
-            Card("SURVIVE THE UNKNOWN","Explore • Gather • Craft • Survive",.57f,.69f,.965f,.91f,"FIELD GUIDE");
-            Card("YOUR JOURNEY",HasSave()?"SAVE DATA FOUND":"NO SAVE DATA",.57f,.40f,.965f,.62f,"EXPEDITION STATUS");
-            TextUI(root.transform,"Version","VERSION 0.1",11,FontStyle.Normal,new Color(.8f,.88f,.64f,.9f),TextAnchor.MiddleLeft,new Vector2(.045f,.035f),new Vector2(.2f,.065f));
-            TextUI(root.transform,"Copyright","© SURVIVAL QUEST",11,FontStyle.Normal,new Color(.8f,.88f,.64f,.7f),TextAnchor.MiddleLeft,new Vector2(.045f,.005f),new Vector2(.24f,.035f));
-            Utility("♪",.885f).onClick.AddListener(Mute);
-            Utility("□",.94f).onClick.AddListener(ToggleFullscreen);
+            BuildMainMenu();
+            BuildInfoCards();
+            BuildFooter();
             BuildSettings();
         }
 
-        private void Card(string title,string body,float xmin,float ymin,float xmax,float ymax,string tag)
+        private void BuildMainMenu()
         {
-            GameObject g=Rect(title,root.transform,new Vector2(xmin,ymin),new Vector2(xmax,ymax));
-            Image i=g.AddComponent<Image>(); i.sprite=WoodSprite(new Color(.11f,.15f,.075f),new Color(.018f,.028f,.012f)); i.type=Image.Type.Sliced; i.color=new Color(1,1,1,.90f);
-            Outline o=g.AddComponent<Outline>();o.effectColor=new Color(.55f,.38f,.16f,.95f);o.effectDistance=new Vector2(2,-2);Shadow(g,new Vector2(6,-6),.75f);
-            TextUI(g.transform,"Title",title,20,FontStyle.Bold,Color.white,TextAnchor.MiddleLeft,new Vector2(.055f,.52f),new Vector2(.94f,.82f));
-            TextUI(g.transform,"Body",body,13,FontStyle.Normal,new Color(.85f,.92f,.72f),TextAnchor.MiddleLeft,new Vector2(.055f,.30f),new Vector2(.94f,.52f));
-            TextUI(g.transform,"Tag",tag,9,FontStyle.Bold,new Color(.69f,.8f,.49f),TextAnchor.MiddleRight,new Vector2(.42f,.07f),new Vector2(.94f,.18f));
-            AddImage(g.transform,"Art",new Color(.22f,.35f,.14f,.55f),new Vector2(.72f,.12f),new Vector2(.94f,.45f));
+            Text title = TextUI(m_Root.transform, "Title", "SURVIVAL QUEST", 64, FontStyle.Bold,
+                new Color(0.98f, 0.94f, 0.77f), TextAnchor.MiddleLeft,
+                new Vector2(0.055f, 0.82f), new Vector2(0.48f, 0.94f));
+            Shadow(title.gameObject, new Vector2(5f, -5f), 0.9f);
+
+            Text subtitle = TextUI(m_Root.transform, "Subtitle", "THE WILDERNESS DOESN'T FORGIVE", 17, FontStyle.Bold,
+                new Color(0.74f, 0.88f, 0.48f), TextAnchor.MiddleLeft,
+                new Vector2(0.058f, 0.775f), new Vector2(0.48f, 0.82f));
+            Shadow(subtitle.gameObject, new Vector2(2f, -2f), 0.75f);
+
+            AddImage(m_Root.transform, "Title Accent", new Color(0.72f, 0.49f, 0.18f, 0.95f),
+                new Vector2(0.058f, 0.758f), new Vector2(0.34f, 0.764f));
+
+            GameObject menu = Rect("Main Menu Buttons", m_Root.transform, new Vector2(0.055f, 0.18f), new Vector2(0.44f, 0.73f));
+            string[] labels = { "PLAY", "CONTINUE", "NEW GAME", "SETTINGS", "EXIT" };
+
+            for (int i = 0; i < labels.Length; i++)
+            {
+                float top = 0.96f - i * 0.18f;
+                float bottom = top - 0.125f;
+                Button button = WoodButton(menu.transform, labels[i], new Vector2(0.02f, bottom), new Vector2(0.92f, top));
+
+                if (i == 0 || i == 2)
+                    button.onClick.AddListener(StartNew);
+                else if (i == 1)
+                {
+                    m_ContinueButton = button;
+                    button.onClick.AddListener(ContinueGame);
+                }
+                else if (i == 3)
+                    button.onClick.AddListener(OpenSettings);
+                else
+                    button.onClick.AddListener(QuitGame);
+            }
+
+            m_Status = TextUI(menu.transform, "Status", "", 13, FontStyle.Bold,
+                new Color(1f, 0.76f, 0.25f), TextAnchor.MiddleLeft,
+                new Vector2(0.02f, 0f), new Vector2(0.92f, 0.055f));
+
+            m_ContinueButton.interactable = HasSave();
+        }
+
+        private void BuildInfoCards()
+        {
+            CreateInfoCard("SURVIVE THE UNKNOWN", "Explore • Gather • Craft • Survive", "FIELD GUIDE", 0.58f, 0.69f, 0.965f, 0.91f);
+            CreateInfoCard("YOUR JOURNEY", HasSave() ? "SAVE DATA FOUND" : "NO SAVE DATA", "EXPEDITION STATUS", 0.58f, 0.40f, 0.965f, 0.62f);
+        }
+
+        private void CreateInfoCard(string title, string body, string tag, float xmin, float ymin, float xmax, float ymax)
+        {
+            GameObject card = Rect(title + " Card", m_Root.transform, new Vector2(xmin, ymin), new Vector2(xmax, ymax));
+            Image image = card.AddComponent<Image>();
+            image.sprite = WoodSprite(new Color(0.13f, 0.18f, 0.08f), new Color(0.015f, 0.025f, 0.01f));
+            image.type = Image.Type.Sliced;
+            image.color = new Color(1f, 1f, 1f, 0.93f);
+
+            Outline outline = card.AddComponent<Outline>();
+            outline.effectColor = new Color(0.52f, 0.36f, 0.15f, 0.95f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            Shadow(card, new Vector2(6f, -6f), 0.72f);
+
+            TextUI(card.transform, "Title", title, 21, FontStyle.Bold, Color.white, TextAnchor.MiddleLeft,
+                new Vector2(0.06f, 0.52f), new Vector2(0.68f, 0.84f));
+            TextUI(card.transform, "Body", body, 13, FontStyle.Normal, new Color(0.85f, 0.92f, 0.72f), TextAnchor.MiddleLeft,
+                new Vector2(0.06f, 0.30f), new Vector2(0.68f, 0.52f));
+            TextUI(card.transform, "Tag", tag, 9, FontStyle.Bold, new Color(0.69f, 0.80f, 0.49f), TextAnchor.MiddleRight,
+                new Vector2(0.45f, 0.08f), new Vector2(0.94f, 0.20f));
+
+            // Decorative low-poly art window, matching the actual game rather than using unrelated imagery.
+            RawImage art = Raw("Art", card.transform, new Vector2(0.73f, 0.13f), new Vector2(0.94f, 0.48f));
+            art.texture = MakeCardArt(240, 110);
+            art.color = new Color(1f, 1f, 1f, 0.88f);
+        }
+
+        private void BuildFooter()
+        {
+            TextUI(m_Root.transform, "Version", "VERSION 0.1", 11, FontStyle.Normal,
+                new Color(0.80f, 0.88f, 0.64f, 0.90f), TextAnchor.MiddleLeft,
+                new Vector2(0.055f, 0.038f), new Vector2(0.20f, 0.066f));
+            TextUI(m_Root.transform, "Copyright", "© SURVIVAL QUEST", 11, FontStyle.Normal,
+                new Color(0.80f, 0.88f, 0.64f, 0.70f), TextAnchor.MiddleLeft,
+                new Vector2(0.055f, 0.008f), new Vector2(0.25f, 0.036f));
+
+            Button mute = UtilityButton("♪", 0.885f);
+            mute.onClick.AddListener(ToggleMute);
+            Button fullscreen = UtilityButton("□", 0.94f);
+            fullscreen.onClick.AddListener(ToggleFullscreen);
         }
 
         private void BuildSettings()
         {
-            settings=Rect("Settings",root.transform,new Vector2(.16f,.06f),new Vector2(.84f,.94f));
-            Image p=settings.AddComponent<Image>();p.sprite=WoodSprite(new Color(.075f,.105f,.045f),new Color(.012f,.02f,.008f));p.type=Image.Type.Sliced;
-            Outline o=settings.AddComponent<Outline>();o.effectColor=new Color(.62f,.43f,.18f,.95f);o.effectDistance=new Vector2(3,-3);Shadow(settings,new Vector2(8,-8),.85f);
-            TextUI(settings.transform,"Title","SETTINGS",34,FontStyle.Bold,new Color(.97f,.91f,.72f),TextAnchor.MiddleLeft,new Vector2(.06f,.88f),new Vector2(.94f,.97f));
-            TextUI(settings.transform,"Sub","GAMEPLAY   •   AUDIO   •   DISPLAY",11,FontStyle.Bold,new Color(.68f,.8f,.48f),TextAnchor.MiddleLeft,new Vector2(.065f,.82f),new Vector2(.94f,.88f));
-            Section("AUDIO",.75f);
-            SliderUI(settings.transform,"Master Volume",.67f,PlayerPrefs.GetFloat(MASTER,1),v=>Save(MASTER,v));
-            SliderUI(settings.transform,"Music Volume",.58f,PlayerPrefs.GetFloat(MUSIC,.8f),v=>Save(MUSIC,v));
-            SliderUI(settings.transform,"SFX Volume",.49f,PlayerPrefs.GetFloat(SFX,.9f),v=>Save(SFX,v));
-            Section("GAMEPLAY",.40f);
-            SliderUI(settings.transform,"Camera Sensitivity",.32f,PlayerPrefs.GetFloat(SENS,.5f),v=>Save(SENS,v));
-            ToggleUI(settings.transform,"Invert Y Axis",.23f,PlayerPrefs.GetInt(INVERT,0)==1,v=>PlayerPrefs.SetInt(INVERT,v?1:0));
-            Section("DISPLAY",.14f);
-            fullscreenToggle=ToggleUI(settings.transform,"Fullscreen",.075f,Screen.fullScreen,v=>Screen.fullScreen=v);
-            DropdownUI(settings.transform,.075f);
-            Button back=Wood(settings.transform,"BACK",new Vector2(.72f,.015f),new Vector2(.93f,.09f));back.onClick.AddListener(CloseSettings);
-            settings.SetActive(false);
+            m_Settings = Rect("Settings Panel", m_Root.transform, new Vector2(0.17f, 0.09f), new Vector2(0.83f, 0.91f));
+
+            Image panel = m_Settings.AddComponent<Image>();
+            panel.sprite = WoodSprite(new Color(0.075f, 0.105f, 0.045f), new Color(0.012f, 0.020f, 0.008f));
+            panel.type = Image.Type.Sliced;
+            panel.color = new Color(1f, 1f, 1f, 0.97f);
+
+            Outline outline = m_Settings.AddComponent<Outline>();
+            outline.effectColor = new Color(0.62f, 0.43f, 0.18f, 0.95f);
+            outline.effectDistance = new Vector2(3f, -3f);
+            Shadow(m_Settings, new Vector2(8f, -8f), 0.85f);
+
+            TextUI(m_Settings.transform, "Title", "SETTINGS", 36, FontStyle.Bold,
+                new Color(0.97f, 0.91f, 0.72f), TextAnchor.MiddleLeft,
+                new Vector2(0.065f, 0.87f), new Vector2(0.94f, 0.96f));
+            TextUI(m_Settings.transform, "Subtitle", "GAMEPLAY   •   AUDIO   •   DISPLAY", 11, FontStyle.Bold,
+                new Color(0.68f, 0.80f, 0.48f), TextAnchor.MiddleLeft,
+                new Vector2(0.068f, 0.81f), new Vector2(0.94f, 0.86f));
+
+            SectionHeader("AUDIO", 0.735f);
+            CreateSliderRow("Master Volume", 0.665f, PlayerPrefs.GetFloat(MASTER, 1f), v => Save(MASTER, v));
+            CreateSliderRow("Music Volume", 0.575f, PlayerPrefs.GetFloat(MUSIC, 0.8f), v => Save(MUSIC, v));
+            CreateSliderRow("SFX Volume", 0.485f, PlayerPrefs.GetFloat(SFX, 0.9f), v => Save(MUSIC, PlayerPrefs.GetFloat(MUSIC, 0.8f)));
+
+            SectionHeader("GAMEPLAY", 0.395f);
+            CreateSliderRow("Camera Sensitivity", 0.325f, PlayerPrefs.GetFloat(SENS, 0.5f), v => Save(SENS, v));
+            m_InvertToggle = CreateToggleRow("Invert Y Axis", 0.235f, PlayerPrefs.GetInt(INVERT, 0) == 1,
+                value => { PlayerPrefs.SetInt(INVERT, value ? 1 : 0); PlayerPrefs.Save(); });
+
+            SectionHeader("DISPLAY", 0.145f);
+            m_FullscreenToggle = CreateToggleRow("Fullscreen", 0.075f, Screen.fullScreen,
+                value => Screen.fullScreen = value);
+            CreateQualityRow(0.075f);
+
+            Button back = WoodButton(m_Settings.transform, "BACK", new Vector2(0.70f, 0.015f), new Vector2(0.93f, 0.09f));
+            back.onClick.AddListener(CloseSettings);
+
+            m_Settings.SetActive(false);
         }
 
-        private void Section(string s,float y){TextUI(settings.transform,s+"L",s,12,FontStyle.Bold,new Color(.72f,.84f,.5f),TextAnchor.MiddleLeft,new Vector2(.065f,y),new Vector2(.5f,y+.045f));AddImage(settings.transform,s+"Line",new Color(.42f,.31f,.14f,.8f),new Vector2(.065f,y-.008f),new Vector2(.93f,y-.004f));}
-
-        private Slider SliderUI(Transform parent,string label,float y,float value,UnityEngine.Events.UnityAction<float> cb)
+        private void SectionHeader(string label, float y)
         {
-            TextUI(parent,label,label,14,FontStyle.Bold,new Color(.92f,.9f,.8f),TextAnchor.MiddleLeft,new Vector2(.08f,y),new Vector2(.40f,y+.055f));
-            GameObject g=Rect(label+"Slider",parent,new Vector2(.43f,y+.006f),new Vector2(.90f,y+.058f));
-            Slider s=g.AddComponent<Slider>();s.minValue=0;s.maxValue=1;s.value=value;s.onValueChanged.AddListener(cb);
-            Image track=Rect("Track",g.transform,Vector2.zero,Vector2.one).AddComponent<Image>();track.color=new Color(.08f,.065f,.035f);track.raycastTarget=false;
-            GameObject fill=Rect("Fill",g.transform,Vector2.zero,new Vector2(value,1));Image fi=fill.AddComponent<Image>();fi.color=new Color(.70f,.52f,.19f);fi.raycastTarget=false;
-            GameObject handle=Rect("Handle",g.transform,new Vector2(value-.01f,.5f),new Vector2(value+.01f,.5f));Image hi=handle.AddComponent<Image>();hi.color=new Color(.96f,.82f,.46f);hi.raycastTarget=false;
-            s.fillRect=fill.GetComponent<RectTransform>();s.handleRect=handle.GetComponent<RectTransform>();return s;
+            TextUI(m_Settings.transform, label + " Label", label, 12, FontStyle.Bold,
+                new Color(0.72f, 0.84f, 0.50f), TextAnchor.MiddleLeft,
+                new Vector2(0.065f, y), new Vector2(0.35f, y + 0.04f));
+            AddImage(m_Settings.transform, label + " Divider", new Color(0.42f, 0.31f, 0.14f, 0.80f),
+                new Vector2(0.065f, y - 0.012f), new Vector2(0.935f, y - 0.008f));
         }
 
-        private Toggle ToggleUI(Transform parent,string label,float y,bool value,UnityEngine.Events.UnityAction<bool> cb)
+        private Slider CreateSliderRow(string label, float y, float value, UnityAction<float> callback)
         {
-            TextUI(parent,label,label,14,FontStyle.Bold,new Color(.92f,.9f,.8f),TextAnchor.MiddleLeft,new Vector2(.08f,y),new Vector2(.55f,y+.055f));
-            GameObject g=Rect(label+"Toggle",parent,new Vector2(.78f,y),new Vector2(.91f,y+.055f));Toggle t=g.AddComponent<Toggle>();t.isOn=value;t.onValueChanged.AddListener(cb);
-            Image bg=g.AddComponent<Image>();bg.color=new Color(.1f,.08f,.04f);t.targetGraphic=bg;
-            GameObject check=Rect("Check",g.transform,new Vector2(.08f,.15f),new Vector2(.92f,.85f));Image ci=check.AddComponent<Image>();ci.color=new Color(.72f,.55f,.2f);t.graphic=ci;return t;
+            TextUI(m_Settings.transform, label + " Label", label, 14, FontStyle.Bold,
+                new Color(0.92f, 0.90f, 0.80f), TextAnchor.MiddleLeft,
+                new Vector2(0.08f, y), new Vector2(0.39f, y + 0.055f));
+
+            GameObject sliderObject = Rect(label + " Slider", m_Settings.transform,
+                new Vector2(0.43f, y + 0.008f), new Vector2(0.90f, y + 0.058f));
+            Slider slider = sliderObject.AddComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.value = Mathf.Clamp01(value);
+            slider.onValueChanged.AddListener(callback);
+
+            Image track = Rect("Track", sliderObject.transform, Vector2.zero, Vector2.one).AddComponent<Image>();
+            track.color = new Color(0.07f, 0.055f, 0.025f);
+            track.raycastTarget = false;
+
+            GameObject fillObject = Rect("Fill", sliderObject.transform, Vector2.zero, new Vector2(0.5f, 1f));
+            Image fill = fillObject.AddComponent<Image>();
+            fill.color = new Color(0.70f, 0.52f, 0.19f);
+            fill.raycastTarget = false;
+
+            GameObject handleObject = Rect("Handle", sliderObject.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f));
+            RectTransform handleRect = handleObject.GetComponent<RectTransform>();
+            handleRect.sizeDelta = new Vector2(28f, 28f);
+            Image handle = handleObject.AddComponent<Image>();
+            handle.color = new Color(0.96f, 0.82f, 0.46f);
+            handle.raycastTarget = false;
+
+            slider.fillRect = fillObject.GetComponent<RectTransform>();
+            slider.handleRect = handleRect;
+            return slider;
         }
 
-        private void DropdownUI(Transform parent,float y)
+        private Toggle CreateToggleRow(string label, float y, bool value, UnityAction<bool> callback)
         {
-            TextUI(parent,"QualityLabel","Graphics Quality",14,FontStyle.Bold,new Color(.92f,.9f,.8f),TextAnchor.MiddleLeft,new Vector2(.08f,y),new Vector2(.52f,y+.055f));
-            GameObject g=Rect("Quality",parent,new Vector2(.58f,y),new Vector2(.91f,y+.055f));Image bg=g.AddComponent<Image>();bg.color=new Color(.1f,.08f,.04f);
-            Dropdown d=g.AddComponent<Dropdown>();d.targetGraphic=bg;
-            d.options.Add(new Dropdown.OptionData("Low"));d.options.Add(new Dropdown.OptionData("Medium"));d.options.Add(new Dropdown.OptionData("High"));d.options.Add(new Dropdown.OptionData("Ultra"));
-            int level=Mathf.Clamp(QualitySettings.GetQualityLevel(),0,Mathf.Min(3,QualitySettings.names.Length-1));d.value=level;
-            Text caption=TextUI(g.transform,"Caption",d.options[level].text,13,FontStyle.Bold,new Color(.95f,.9f,.72f),TextAnchor.MiddleCenter,Vector2.zero,Vector2.one);d.captionText=caption;
-            d.onValueChanged.AddListener(v=>QualitySettings.SetQualityLevel(Mathf.Clamp(v,0,QualitySettings.names.Length-1)));
+            TextUI(m_Settings.transform, label + " Label", label, 14, FontStyle.Bold,
+                new Color(0.92f, 0.90f, 0.80f), TextAnchor.MiddleLeft,
+                new Vector2(0.08f, y), new Vector2(0.50f, y + 0.055f));
+
+            GameObject toggleObject = Rect(label + " Toggle", m_Settings.transform,
+                new Vector2(0.80f, y + 0.004f), new Vector2(0.90f, y + 0.065f));
+            Image background = toggleObject.AddComponent<Image>();
+            background.color = new Color(0.08f, 0.065f, 0.03f);
+
+            Toggle toggle = toggleObject.AddComponent<Toggle>();
+            toggle.isOn = value;
+            toggle.targetGraphic = background;
+            toggle.onValueChanged.AddListener(callback);
+
+            GameObject checkObject = Rect("Check", toggleObject.transform,
+                new Vector2(0.08f, 0.16f), new Vector2(0.45f, 0.84f));
+            Image check = checkObject.AddComponent<Image>();
+            check.color = new Color(0.72f, 0.55f, 0.20f);
+            check.raycastTarget = false;
+            toggle.graphic = check;
+            return toggle;
         }
 
-        private void OpenSettings(){settings.SetActive(true);} private void CloseSettings(){settings.SetActive(false);}
-        private void StartNew(){PlayerPrefs.SetInt(SAVE,1);PlayerPrefs.Save();LoadGame();}
-        private void Continue(){if(!HasSave()){status.text="NO SAVE DATA — START A NEW JOURNEY";return;}LoadGame();}
-        private void LoadGame(){if(m_LoadingGame)return;m_LoadingGame=true;Time.timeScale=1f;Cursor.visible=false;Cursor.lockState=CursorLockMode.Locked;SceneManager.LoadScene(GAME_SCENE);}
-        private void RefreshContinue(){if(continueButton!=null)continueButton.interactable=HasSave();}
-        private void Quit(){
+        private void CreateQualityRow(float y)
+        {
+            TextUI(m_Settings.transform, "Graphics Quality Label", "Graphics Quality", 14, FontStyle.Bold,
+                new Color(0.92f, 0.90f, 0.80f), TextAnchor.MiddleLeft,
+                new Vector2(0.08f, y), new Vector2(0.50f, y + 0.055f));
+
+            GameObject buttonObject = Rect("Graphics Quality Button", m_Settings.transform,
+                new Vector2(0.59f, y + 0.002f), new Vector2(0.90f, y + 0.064f));
+            Image image = buttonObject.AddComponent<Image>();
+            image.sprite = WoodSprite(new Color(0.25f, 0.15f, 0.055f), new Color(0.07f, 0.035f, 0.01f));
+            image.type = Image.Type.Sliced;
+            Button button = buttonObject.AddComponent<Button>();
+            button.targetGraphic = image;
+
+            m_QualityValue = TextUI(buttonObject.transform, "Value", CurrentQualityName(), 13, FontStyle.Bold,
+                new Color(0.96f, 0.90f, 0.72f), TextAnchor.MiddleCenter, Vector2.zero, Vector2.one);
+            m_QualityValue.raycastTarget = false;
+            button.onClick.AddListener(CycleQuality);
+        }
+
+        private void CycleQuality()
+        {
+            string[] names = { "Low", "Medium", "High", "Ultra" };
+            int current = Mathf.Clamp(QualitySettings.GetQualityLevel(), 0, names.Length - 1);
+            int next = (current + 1) % names.Length;
+            int actual = Mathf.Clamp(next, 0, Mathf.Max(0, QualitySettings.names.Length - 1));
+            QualitySettings.SetQualityLevel(actual);
+            if (m_QualityValue != null) m_QualityValue.text = names[next];
+        }
+
+        private string CurrentQualityName()
+        {
+            string[] names = { "Low", "Medium", "High", "Ultra" };
+            return names[Mathf.Clamp(QualitySettings.GetQualityLevel(), 0, names.Length - 1)];
+        }
+
+        private void OpenSettings()
+        {
+            if (m_Settings != null) m_Settings.SetActive(true);
+        }
+
+        private void CloseSettings()
+        {
+            if (m_Settings != null) m_Settings.SetActive(false);
+        }
+
+        private void StartNew()
+        {
+            PlayerPrefs.SetInt(SAVE, 1);
+            PlayerPrefs.Save();
+            LoadGame();
+        }
+
+        private void ContinueGame()
+        {
+            if (!HasSave())
+            {
+                if (m_Status != null) m_Status.text = "NO SAVE DATA — START A NEW JOURNEY";
+                return;
+            }
+            LoadGame();
+        }
+
+        private void LoadGame()
+        {
+            if (m_LoadingGame) return;
+            m_LoadingGame = true;
+            Time.timeScale = 1f;
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
+            SceneManager.LoadScene(GAME_SCENE);
+        }
+
+        private void QuitGame()
+        {
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying=false;
+            UnityEditor.EditorApplication.isPlaying = false;
 #else
             Application.Quit();
 #endif
         }
-        private void Mute(){AudioListener.volume=AudioListener.volume>.01f?0:PlayerPrefs.GetFloat(MASTER,1);}
-        private void ToggleFullscreen(){Screen.fullScreen=!Screen.fullScreen;if(fullscreenToggle!=null)fullscreenToggle.isOn=Screen.fullScreen;}
-        private void Save(string key,float value){PlayerPrefs.SetFloat(key,value);PlayerPrefs.Save();if(key==MASTER)AudioListener.volume=value;}
-        private bool HasSave(){return PlayerPrefs.GetInt(SAVE,0)==1;}
 
-        private static void EnsureEventSystem()
+        private void ToggleMute()
         {
-            if(FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>()!=null)return;
-            GameObject go=new GameObject("EventSystem",typeof(UnityEngine.EventSystems.EventSystem));
+            AudioListener.volume = AudioListener.volume > 0.01f ? 0f : PlayerPrefs.GetFloat(MASTER, 1f);
+        }
+
+        private void ToggleFullscreen()
+        {
+            Screen.fullScreen = !Screen.fullScreen;
+            if (m_FullscreenToggle != null) m_FullscreenToggle.isOn = Screen.fullScreen;
+        }
+
+        private void Save(string key, float value)
+        {
+            PlayerPrefs.SetFloat(key, value);
+            PlayerPrefs.Save();
+            if (key == MASTER) AudioListener.volume = value;
+        }
+
+        private bool HasSave()
+        {
+            return PlayerPrefs.GetInt(SAVE, 0) == 1;
+        }
+
+        private static void EnsureSingleEventSystem()
+        {
+            UnityEngine.EventSystems.EventSystem[] systems = FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None);
+            if (systems.Length > 0)
+            {
+                for (int i = 1; i < systems.Length; i++)
+                    Destroy(systems[i].gameObject);
+                return;
+            }
+
+            GameObject go = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
 #if ENABLE_INPUT_SYSTEM
             go.AddComponent<InputSystemUIInputModule>();
 #else
@@ -179,36 +407,247 @@ namespace SurvivalGame.UI
 #endif
         }
 
-        private static GameObject Rect(string name,Transform parent,Vector2 min,Vector2 max){GameObject g=new GameObject(name,typeof(RectTransform));RectTransform r=g.GetComponent<RectTransform>();r.SetParent(parent,false);r.anchorMin=min;r.anchorMax=max;r.offsetMin=Vector2.zero;r.offsetMax=Vector2.zero;r.pivot=new Vector2(.5f,.5f);return g;}
-        private static Image AddImage(Transform p,string n,Color c,Vector2 min,Vector2 max){Image i=Rect(n,p,min,max).AddComponent<Image>();i.color=c;return i;}
-        private static RawImage Raw(string n,Transform p,Vector2 min,Vector2 max){return Rect(n,p,min,max).AddComponent<RawImage>();}
-        private static Text TextUI(Transform p,string n,string text,int size,FontStyle style,Color color,TextAnchor align,Vector2 min,Vector2 max){Text t=Rect(n,p,min,max).AddComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=text;t.fontSize=size;t.fontStyle=style;t.color=color;t.alignment=align;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;t.raycastTarget=false;return t;}
-        private static void Shadow(GameObject g,Vector2 d,float a){Shadow s=g.GetComponent<Shadow>()??g.AddComponent<Shadow>();s.effectColor=new Color(0,0,0,a);s.effectDistance=d;s.useGraphicAlpha=true;}
-        private static Button Wood(Transform p,string label,Vector2 min,Vector2 max){GameObject g=Rect(label+"Button",p,min,max);Image i=g.AddComponent<Image>();i.sprite=WoodSprite(new Color(.34f,.20f,.07f),new Color(.09f,.045f,.012f));i.type=Image.Type.Sliced;Button b=g.AddComponent<Button>();b.targetGraphic=i;ColorBlock c=b.colors;c.highlightedColor=new Color(1,.94f,.72f);c.pressedColor=new Color(.82f,.67f,.39f);c.disabledColor=new Color(.45f,.45f,.45f,.45f);b.colors=c;Text t=TextUI(g.transform,"Label",label,28,FontStyle.Bold,new Color(.97f,.91f,.72f),TextAnchor.MiddleCenter,Vector2.zero,Vector2.one);t.raycastTarget=false;Shadow(g,new Vector2(4,-4),.8f);return b;}
-        private Button Utility(string label,float x){GameObject g=Rect("Utility",root.transform,new Vector2(x,.035f),new Vector2(x+.045f,.095f));Image i=g.AddComponent<Image>();i.sprite=WoodSprite(new Color(.2f,.12f,.04f),new Color(.055f,.025f,.008f));i.type=Image.Type.Sliced;Button b=g.AddComponent<Button>();b.targetGraphic=i;Text t=TextUI(g.transform,"Icon",label,18,FontStyle.Bold,new Color(.95f,.88f,.68f),TextAnchor.MiddleCenter,Vector2.zero,Vector2.one);t.raycastTarget=false;return b;}
-
-        private static Sprite WoodSprite(Color center,Color edge)
+        private static GameObject Rect(string name, Transform parent, Vector2 min, Vector2 max)
         {
-            const int w=32,h=32;
-            Texture2D tex=new Texture2D(w,h,TextureFormat.RGBA32,false);tex.wrapMode=TextureWrapMode.Clamp;
-            for(int y=0;y<h;y++)for(int x=0;x<w;x++){float border=Mathf.Min(Mathf.Min(x,w-1-x),Mathf.Min(y,h-1-y));float grain=Mathf.Sin(y*.75f+x*.08f)*.035f;float t=Mathf.Clamp01(border/7f);Color c=Color.Lerp(edge,center,t);c.r+=grain;c.g+=grain;c.b+=grain;tex.SetPixel(x,y,c);}tex.Apply();
-            return Sprite.Create(tex,new Rect(0,0,w,h),new Vector2(.5f,.5f),100,0,SpriteMeshType.FullRect,new Vector4(8,8,8,8));
+            GameObject go = new GameObject(name, typeof(RectTransform));
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            return go;
         }
 
-        private static Texture2D MakeBackground(int w,int h)
+        private static Image AddImage(Transform parent, string name, Color color, Vector2 min, Vector2 max)
         {
-            Texture2D tex=new Texture2D(w,h,TextureFormat.RGB24,false);tex.wrapMode=TextureWrapMode.Clamp;
-            for(int y=0;y<h;y++)for(int x=0;x<w;x++)
+            Image image = Rect(name, parent, min, max).AddComponent<Image>();
+            image.color = color;
+            return image;
+        }
+
+        private static RawImage Raw(string name, Transform parent, Vector2 min, Vector2 max)
+        {
+            return Rect(name, parent, min, max).AddComponent<RawImage>();
+        }
+
+        private static Text TextUI(Transform parent, string name, string value, int size, FontStyle style,
+            Color color, TextAnchor alignment, Vector2 min, Vector2 max)
+        {
+            Text text = Rect(name, parent, min, max).AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text = value;
+            text.fontSize = size;
+            text.fontStyle = style;
+            text.color = color;
+            text.alignment = alignment;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.raycastTarget = false;
+            return text;
+        }
+
+        private static void Shadow(GameObject target, Vector2 distance, float alpha)
+        {
+            Shadow shadow = target.GetComponent<Shadow>() ?? target.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, alpha);
+            shadow.effectDistance = distance;
+            shadow.useGraphicAlpha = true;
+        }
+
+        private static Button WoodButton(Transform parent, string label, Vector2 min, Vector2 max)
+        {
+            GameObject go = Rect(label + " Button", parent, min, max);
+            Image image = go.AddComponent<Image>();
+            image.sprite = WoodSprite(new Color(0.34f, 0.20f, 0.07f), new Color(0.09f, 0.045f, 0.012f));
+            image.type = Image.Type.Sliced;
+
+            Button button = go.AddComponent<Button>();
+            button.targetGraphic = image;
+            ColorBlock colors = button.colors;
+            colors.highlightedColor = new Color(1f, 0.94f, 0.72f);
+            colors.pressedColor = new Color(0.82f, 0.67f, 0.39f);
+            colors.disabledColor = new Color(0.45f, 0.45f, 0.45f, 0.45f);
+            colors.fadeDuration = 0.08f;
+            button.colors = colors;
+
+            Text text = TextUI(go.transform, "Label", label, 28, FontStyle.Bold,
+                new Color(0.97f, 0.91f, 0.72f), TextAnchor.MiddleCenter, Vector2.zero, Vector2.one);
+            text.raycastTarget = false;
+            Shadow(go, new Vector2(4f, -4f), 0.8f);
+            return button;
+        }
+
+        private Button UtilityButton(string label, float x)
+        {
+            GameObject go = Rect("Utility " + label, m_Root.transform,
+                new Vector2(x, 0.035f), new Vector2(x + 0.045f, 0.095f));
+            Image image = go.AddComponent<Image>();
+            image.sprite = WoodSprite(new Color(0.20f, 0.12f, 0.04f), new Color(0.055f, 0.025f, 0.008f));
+            image.type = Image.Type.Sliced;
+            Button button = go.AddComponent<Button>();
+            button.targetGraphic = image;
+            Text text = TextUI(go.transform, "Icon", label, 18, FontStyle.Bold,
+                new Color(0.95f, 0.88f, 0.68f), TextAnchor.MiddleCenter, Vector2.zero, Vector2.one);
+            text.raycastTarget = false;
+            return button;
+        }
+
+        private static Sprite WoodSprite(Color center, Color edge)
+        {
+            const int size = 32;
+            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
+
+            for (int y = 0; y < size; y++)
             {
-                float ny=y/(float)h;float nx=x/(float)w;
-                float terrain=0.12f+0.18f*ny+0.04f*Mathf.Sin(nx*18f)*Mathf.Sin(ny*12f);
-                float sky=Mathf.Clamp01(1f-ny*1.2f);
-                Color c=Color.Lerp(new Color(.22f,.30f,.14f),new Color(.07f,.10f,.055f),sky*.65f);
-                if(ny>.52f)c=Color.Lerp(c,new Color(.32f,.48f,.13f),Mathf.Clamp01((ny-.52f)*1.5f));
-                c*=.75f+terrain;
-                tex.SetPixel(x,y,c);
+                for (int x = 0; x < size; x++)
+                {
+                    float border = Mathf.Min(Mathf.Min(x, size - 1 - x), Mathf.Min(y, size - 1 - y));
+                    float grain = Mathf.Sin(y * 0.75f + x * 0.08f) * 0.035f;
+                    float t = Mathf.Clamp01(border / 7f);
+                    Color color = Color.Lerp(edge, center, t);
+                    color.r += grain;
+                    color.g += grain;
+                    color.b += grain;
+                    texture.SetPixel(x, y, color);
+                }
             }
-            tex.Apply();return tex;
+
+            texture.Apply();
+            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect, new Vector4(8f, 8f, 8f, 8f));
+        }
+
+        private static Texture2D MakeLowPolyBackground(int width, int height)
+        {
+            Texture2D tex = new Texture2D(width, height, TextureFormat.RGB24, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+
+            for (int y = 0; y < height; y++)
+            {
+                float ny = y / (float)height;
+                for (int x = 0; x < width; x++)
+                {
+                    float nx = x / (float)width;
+                    Color sky = Color.Lerp(new Color(0.055f, 0.095f, 0.035f), new Color(0.16f, 0.27f, 0.10f), ny);
+                    Color ground = Color.Lerp(new Color(0.10f, 0.18f, 0.035f), new Color(0.30f, 0.52f, 0.09f), Mathf.Clamp01((ny - 0.42f) * 1.6f));
+                    Color color = ny < 0.43f ? sky : ground;
+
+                    // Distant blocky cliffs.
+                    float ridge = 0.22f + 0.04f * Mathf.Sin(nx * 9f) + 0.025f * Mathf.Sin(nx * 23f);
+                    if (ny > 0.34f && ny < ridge + 0.15f)
+                        color = Color.Lerp(color, new Color(0.28f, 0.18f, 0.09f), 0.75f);
+
+                    // Low-poly ground bands.
+                    float grid = Mathf.Abs(Mathf.Sin(nx * 70f) * Mathf.Sin(ny * 52f));
+                    if (ny > 0.45f) color *= 0.92f + grid * 0.08f;
+
+                    tex.SetPixel(x, y, color);
+                }
+            }
+
+            // Simple low-poly tree silhouettes and rocks are stamped after the base gradient.
+            DrawTree(tex, 145, 390, 150, 250);
+            DrawTree(tex, 300, 335, 120, 220);
+            DrawTree(tex, 1060, 345, 130, 240);
+            DrawTree(tex, 1165, 420, 105, 210);
+            DrawRock(tex, 620, 430, 180, 110);
+            DrawRock(tex, 960, 405, 130, 85);
+            DrawCabin(tex, 790, 320, 190, 125);
+            return tex;
+        }
+
+        private static void DrawTree(Texture2D tex, int cx, int baseY, int height, int width)
+        {
+            int minX = Mathf.Max(0, cx - width / 2);
+            int maxX = Mathf.Min(tex.width - 1, cx + width / 2);
+            int top = Mathf.Clamp(baseY - height, 0, tex.height - 1);
+            Color trunk = new Color(0.18f, 0.09f, 0.035f);
+            Color leaves = new Color(0.08f, 0.23f, 0.045f);
+
+            for (int y = top; y <= baseY; y++)
+            {
+                float p = (y - top) / (float)Mathf.Max(1, baseY - top);
+                int half = Mathf.RoundToInt(Mathf.Lerp(width * 0.12f, width * 0.5f, p));
+                for (int x = Mathf.Max(minX, cx - half); x <= Mathf.Min(maxX, cx + half); x++)
+                {
+                    float edge = Mathf.Abs(x - cx) / (float)Mathf.Max(1, half);
+                    if (edge < 1f && y < baseY - 18)
+                        tex.SetPixel(x, y, Color.Lerp(leaves, new Color(0.025f, 0.08f, 0.02f), edge));
+                }
+            }
+
+            for (int y = baseY - 8; y <= baseY + 20; y++)
+            {
+                for (int x = cx - 8; x <= cx + 8; x++)
+                    if (x >= 0 && x < tex.width && y >= 0 && y < tex.height) tex.SetPixel(x, y, trunk);
+            }
+        }
+
+        private static void DrawRock(Texture2D tex, int cx, int cy, int width, int height)
+        {
+            Color rock = new Color(0.22f, 0.27f, 0.24f);
+            for (int y = Mathf.Max(0, cy - height / 2); y < Mathf.Min(tex.height, cy + height / 2); y++)
+            {
+                float py = (y - (cy - height / 2f)) / height;
+                float half = Mathf.Sin(py * Mathf.PI) * width * 0.5f;
+                for (int x = Mathf.Max(0, cx - (int)half); x < Mathf.Min(tex.width, cx + (int)half); x++)
+                    tex.SetPixel(x, y, Color.Lerp(rock, new Color(0.12f, 0.15f, 0.14f), py * 0.45f));
+            }
+        }
+
+        private static void DrawCabin(Texture2D tex, int cx, int cy, int width, int height)
+        {
+            int left = cx - width / 2;
+            int right = cx + width / 2;
+            int bottom = cy;
+            int top = cy + height / 2;
+            Color wall = new Color(0.30f, 0.19f, 0.09f);
+            Color roof = new Color(0.07f, 0.12f, 0.14f);
+            Color door = new Color(0.12f, 0.065f, 0.025f);
+
+            for (int y = bottom; y < top; y++)
+                for (int x = left; x < right; x++)
+                    if (x >= 0 && x < tex.width && y >= 0 && y < tex.height) tex.SetPixel(x, y, wall);
+
+            for (int y = bottom + height / 2; y < top + height / 2; y++)
+            {
+                float row = (y - (bottom + height / 2f)) / (height * 0.5f);
+                int half = Mathf.RoundToInt(width * 0.5f * (1f - row));
+                for (int x = cx - half; x <= cx + half; x++)
+                    if (x >= 0 && x < tex.width && y >= 0 && y < tex.height) tex.SetPixel(x, y, roof);
+            }
+
+            for (int y = bottom; y < bottom + height / 2; y++)
+                for (int x = cx - 16; x < cx + 16; x++)
+                    if (x >= 0 && x < tex.width && y >= 0 && y < tex.height) tex.SetPixel(x, y, door);
+        }
+
+        private static Texture2D MakeCardArt(int width, int height)
+        {
+            Texture2D tex = new Texture2D(width, height, TextureFormat.RGB24, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    float ny = y / (float)height;
+                    float nx = x / (float)width;
+                    Color c = Color.Lerp(new Color(0.08f, 0.15f, 0.04f), new Color(0.28f, 0.45f, 0.08f), ny);
+                    c *= 0.82f + Mathf.Sin(nx * 17f) * 0.04f;
+                    tex.SetPixel(x, y, c);
+                }
+            }
+            tex.Apply();
+            DrawTree(tex, width / 5, height - 10, height / 2, width / 4);
+            DrawTree(tex, width * 4 / 5, height - 5, height * 3 / 5, width / 3);
+            DrawRock(tex, width / 2, height * 3 / 4, width / 3, height / 2);
+            tex.Apply();
+            return tex;
         }
     }
 }
