@@ -18,7 +18,7 @@ namespace SurvivalGame
         {
             Player player = Player.m_Current;
             if (player == null)
-                player = Object.FindObjectOfType<Player>();
+                player = Object.FindFirstObjectByType<Player>();
 
             if (player != null && player.GetComponent<MouseAttackInput>() == null)
                 player.gameObject.AddComponent<MouseAttackInput>();
