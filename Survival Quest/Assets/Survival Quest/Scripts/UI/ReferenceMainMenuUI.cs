@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -51,7 +50,7 @@ namespace SurvivalGame.UI
 
             if (artwork.texture == null)
             {
-                Debug.LogError("SURVIVAL QUEST: MainMenuArtwork.png is missing. Put the supplied asset at Assets/Resources/MainMenuArtwork.png");
+                Debug.LogError("SURVIVAL QUEST: MainMenuArtwork.png is missing. Put it at Assets/Resources/MainMenuArtwork.png");
                 return;
             }
 
@@ -140,12 +139,13 @@ namespace SurvivalGame.UI
         {
             GameObject go=Rect(name+" Click",parent,new Vector2(x1,y1),new Vector2(x2,y2));
 
-            // CanvasRenderer is explicitly created BEFORE any Graphic component.
-            // Without it Unity throws MissingComponentException and the button becomes unusable.
+            // A real quad is required so Unity's UI Outline can render a visible glow.
+            // It is fully transparent, so it never changes the artwork itself.
             if(go.GetComponent<CanvasRenderer>()==null)
                 go.AddComponent<CanvasRenderer>();
 
             InvisibleRaycastGraphic hitGraphic=go.AddComponent<InvisibleRaycastGraphic>();
+            hitGraphic.color=new Color(1f,1f,1f,0.001f);
             hitGraphic.raycastTarget=true;
 
             Button button=go.AddComponent<Button>();
@@ -156,7 +156,7 @@ namespace SurvivalGame.UI
             button.onClick.AddListener(action);
 
             HoverGlowController controller=go.AddComponent<HoverGlowController>();
-            controller.Glow=go.AddComponent<HoverGlowGraphic>();
+            controller.Setup(hitGraphic);
         }
 
         private void StartNew(){LoadGame();}
@@ -231,116 +231,58 @@ namespace SurvivalGame.UI
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
+            Rect r=GetPixelAdjustedRect();
+            Color c=color;
+
+            UIVertex v=UIVertex.simpleVert;
+            v.color=c;
+            v.position=new Vector3(r.xMin,r.yMin);
+            vh.AddVert(v);
+            v.position=new Vector3(r.xMin,r.yMax);
+            vh.AddVert(v);
+            v.position=new Vector3(r.xMax,r.yMax);
+            vh.AddVert(v);
+            v.position=new Vector3(r.xMax,r.yMin);
+            vh.AddVert(v);
+            vh.AddTriangle(0,1,2);
+            vh.AddTriangle(2,3,0);
         }
     }
 
     internal sealed class HoverGlowController : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        public HoverGlowGraphic Glow { get; set; }
+        private Outline outline;
+        private bool hovering;
+        private float pulse;
+
+        public void Setup(Graphic target)
+        {
+            outline=target.gameObject.GetComponent<Outline>();
+            if(outline==null) outline=target.gameObject.AddComponent<Outline>();
+            outline.effectColor=new Color(1f,.60f,.08f,0.95f);
+            outline.effectDistance=new Vector2(3f,3f);
+            outline.enabled=false;
+        }
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            if(Glow!=null) Glow.SetHover(true);
+            hovering=true;
+            if(outline!=null) outline.enabled=true;
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            if(Glow!=null) Glow.SetHover(false);
-        }
-    }
-
-    [RequireComponent(typeof(CanvasRenderer))]
-    internal sealed class HoverGlowGraphic : Graphic
-    {
-        private bool hovering;
-        private float pulse=1f;
-
-        private readonly Color[] layerColors =
-        {
-            new Color(1f, .76f, .28f, .95f),
-            new Color(1f, .55f, .10f, .42f),
-            new Color(1f, .30f, .02f, .16f)
-        };
-
-        private readonly float[] layerWidths = { 2f, 5f, 9f };
-
-        protected override void Awake()
-        {
-            base.Awake();
-            raycastTarget=false;
-            color=Color.white;
-        }
-
-        public void SetHover(bool value)
-        {
-            if(hovering==value)return;
-            hovering=value;
-            SetVerticesDirty();
+            hovering=false;
+            if(outline!=null) outline.enabled=false;
         }
 
         private void Update()
         {
-            if(!hovering)return;
-            pulse=.82f+Mathf.Sin(Time.unscaledTime*5f)*.18f;
-            SetVerticesDirty();
-        }
-
-        protected override void OnPopulateMesh(VertexHelper vh)
-        {
-            vh.Clear();
-            if(!hovering)return;
-
-            Rect r=GetPixelAdjustedRect();
-            float radius=Mathf.Min(12f,Mathf.Min(r.width,r.height)*.20f);
-
-            for(int layer=layerWidths.Length-1;layer>=0;layer--)
-            {
-                float width=layerWidths[layer];
-                Color c=layerColors[layer];
-                c.a*=pulse;
-                AddRoundedRing(vh,r,radius,width,c);
-            }
-        }
-
-        private static void AddRoundedRing(VertexHelper vh,Rect rect,float radius,float width,Color color)
-        {
-            const int segments=8;
-            List<Vector2> outer=BuildRoundedLoop(rect,radius+width*.5f,segments);
-            Rect innerRect=new Rect(rect.x+width,rect.y+width,rect.width-width*2f,rect.height-width*2f);
-            if(innerRect.width<=1f||innerRect.height<=1f)return;
-            List<Vector2> inner=BuildRoundedLoop(innerRect,Mathf.Max(0f,radius-width*.35f),segments);
-
-            int count=Mathf.Min(outer.Count,inner.Count);
-            for(int i=0;i<count;i++)
-            {
-                int next=(i+1)%count;
-                UIVertex a=UIVertex.simpleVert; a.position=outer[i]; a.color=color;
-                UIVertex b=UIVertex.simpleVert; b.position=outer[next]; b.color=color;
-                UIVertex c=UIVertex.simpleVert; c.position=inner[next]; c.color=color;
-                UIVertex d=UIVertex.simpleVert; d.position=inner[i]; d.color=color;
-                vh.AddUIVertexQuad(new[]{a,b,c,d});
-            }
-        }
-
-        private static List<Vector2> BuildRoundedLoop(Rect r,float radius,int segments)
-        {
-            radius=Mathf.Clamp(radius,0f,Mathf.Min(r.width,r.height)*.5f);
-            List<Vector2> points=new List<Vector2>(segments*4);
-            AddArc(points,new Vector2(r.xMax-radius,r.yMax-radius),radius,0f,90f,segments);
-            AddArc(points,new Vector2(r.xMin+radius,r.yMax-radius),radius,90f,180f,segments);
-            AddArc(points,new Vector2(r.xMin+radius,r.yMin+radius),radius,180f,270f,segments);
-            AddArc(points,new Vector2(r.xMax-radius,r.yMin+radius),radius,270f,360f,segments);
-            return points;
-        }
-
-        private static void AddArc(List<Vector2> points,Vector2 center,float radius,float start,float end,int segments)
-        {
-            for(int i=0;i<segments;i++)
-            {
-                float t=i/(float)segments;
-                float angle=Mathf.Lerp(start,end,t)*Mathf.Deg2Rad;
-                points.Add(center+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*radius);
-            }
+            if(!hovering || outline==null) return;
+            pulse=.72f+Mathf.Sin(Time.unscaledTime*5f)*.28f;
+            Color c=outline.effectColor;
+            c.a=pulse;
+            outline.effectColor=c;
         }
     }
 }
