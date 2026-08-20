@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -125,18 +126,20 @@ namespace SurvivalGame.UI
         private void Hit(Transform parent,string name,float x1,float y1,float x2,float y2,UnityEngine.Events.UnityAction action)
         {
             GameObject go=Rect(name+" Click",parent,new Vector2(x1,y1),new Vector2(x2,y2));
-            Image image=go.AddComponent<Image>();
-            // Completely invisible hit area: it must never create a colored rectangle over the artwork.
-            image.color=Color.clear;
-            image.raycastTarget=true;
+
+            // This Graphic is ONLY a transparent mouse hit area. It draws nothing.
+            InvisibleRaycastGraphic hitGraphic=go.AddComponent<InvisibleRaycastGraphic>();
+            hitGraphic.raycastTarget=true;
 
             Button button=go.AddComponent<Button>();
-            button.targetGraphic=image;
+            button.targetGraphic=hitGraphic;
             button.transition=Selectable.Transition.None;
+            button.navigation=Navigation.defaultNavigation;
             button.onClick.AddListener(action);
 
-            MainMenuHoverGlow glow=go.AddComponent<MainMenuHoverGlow>();
-            glow.Configure(image);
+            HoverGlowGraphic glow=go.AddComponent<HoverGlowGraphic>();
+            glow.raycastTarget=false;
+            glow.Configure();
         }
 
         private void StartNew(){LoadGame();}
@@ -173,63 +176,114 @@ namespace SurvivalGame.UI
         }
     }
 
-    internal sealed class MainMenuHoverGlow : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    // Completely invisible UI element that still receives GraphicRaycaster mouse events.
+    internal sealed class InvisibleRaycastGraphic : Graphic
+    {
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();
+        }
+    }
+
+    // Draws only a soft golden outline. There is NEVER a filled rectangle.
+    internal sealed class HoverGlowGraphic : Graphic, IPointerEnterHandler, IPointerExitHandler
     {
         private bool hovering;
-        private Outline tightGlow;
-        private Outline middleGlow;
-        private Outline outerGlow;
+        private float pulse;
 
-        public void Configure(Image target)
+        private readonly Color[] layerColors =
         {
-            // Three outline layers create a glow around the option only.
-            // The source Image stays fully transparent, so there is NO orange rectangle.
-            tightGlow=target.gameObject.AddComponent<Outline>();
-            tightGlow.useGraphicAlpha=false;
-            tightGlow.effectColor=new Color(1f,.70f,.20f,.95f);
-            tightGlow.effectDistance=new Vector2(2f,2f);
-            tightGlow.enabled=false;
+            new Color(1f, 0.76f, 0.28f, 0.95f),
+            new Color(1f, 0.55f, 0.10f, 0.42f),
+            new Color(1f, 0.30f, 0.02f, 0.16f)
+        };
 
-            middleGlow=target.gameObject.AddComponent<Outline>();
-            middleGlow.useGraphicAlpha=false;
-            middleGlow.effectColor=new Color(1f,.52f,.08f,.42f);
-            middleGlow.effectDistance=new Vector2(5f,5f);
-            middleGlow.enabled=false;
+        private readonly float[] layerWidths = { 2f, 5f, 9f };
 
-            outerGlow=target.gameObject.AddComponent<Outline>();
-            outerGlow.useGraphicAlpha=false;
-            outerGlow.effectColor=new Color(1f,.38f,.03f,.18f);
-            outerGlow.effectDistance=new Vector2(9f,9f);
-            outerGlow.enabled=false;
+        public void Configure()
+        {
+            color = Color.white;
+            raycastTarget = false;
+            enabled = false;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            hovering=true;
-            SetGlow(true);
+            hovering = true;
+            enabled = true;
+            SetVerticesDirty();
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            hovering=false;
-            SetGlow(false);
-        }
-
-        private void SetGlow(bool enabled)
-        {
-            if(tightGlow!=null) tightGlow.enabled=enabled;
-            if(middleGlow!=null) middleGlow.enabled=enabled;
-            if(outerGlow!=null) outerGlow.enabled=enabled;
+            hovering = false;
+            enabled = false;
         }
 
         private void Update()
         {
-            if(!hovering) return;
+            if (!hovering) return;
+            pulse = 0.82f + Mathf.Sin(Time.unscaledTime * 5f) * 0.18f;
+            SetVerticesDirty();
+        }
 
-            float pulse=0.82f+Mathf.Sin(Time.unscaledTime*4.5f)*0.18f;
-            if(tightGlow!=null) tightGlow.effectColor=new Color(1f,.72f,.25f,.95f*pulse);
-            if(middleGlow!=null) middleGlow.effectColor=new Color(1f,.52f,.08f,.42f*pulse);
-            if(outerGlow!=null) outerGlow.effectColor=new Color(1f,.35f,.02f,.18f*pulse);
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();
+            if (!hovering) return;
+
+            Rect r = GetPixelAdjustedRect();
+            float radius = Mathf.Min(12f, Mathf.Min(r.width, r.height) * 0.20f);
+
+            for (int layer = layerWidths.Length - 1; layer >= 0; layer--)
+            {
+                float width = layerWidths[layer];
+                Color c = layerColors[layer];
+                c.a *= pulse;
+                AddRoundedRing(vh, r, radius + width * 0.5f, radius, width, c);
+            }
+        }
+
+        private static void AddRoundedRing(VertexHelper vh, Rect rect, float outerRadius, float innerRadius, float width, Color color)
+        {
+            const int cornerSegments = 8;
+            const int corners = 4;
+            int pointsPerLoop = cornerSegments * corners + 4;
+            List<Vector2> outer = BuildRoundedLoop(rect, outerRadius, cornerSegments);
+            Rect innerRect = new Rect(rect.x + width, rect.y + width, rect.width - width * 2f, rect.height - width * 2f);
+            List<Vector2> inner = BuildRoundedLoop(innerRect, Mathf.Max(0f, innerRadius - width * 0.35f), cornerSegments);
+
+            int count = Mathf.Min(outer.Count, inner.Count);
+            for (int i = 0; i < count; i++)
+            {
+                int next = (i + 1) % count;
+                UIVertex a = UIVertex.simpleVert; a.position = outer[i]; a.color = color;
+                UIVertex b = UIVertex.simpleVert; b.position = outer[next]; b.color = color;
+                UIVertex c = UIVertex.simpleVert; c.position = inner[next]; c.color = color;
+                UIVertex d = UIVertex.simpleVert; d.position = inner[i]; d.color = color;
+                vh.AddUIVertexQuad(new[] { a, b, c, d });
+            }
+        }
+
+        private static List<Vector2> BuildRoundedLoop(Rect r, float radius, int segments)
+        {
+            radius = Mathf.Clamp(radius, 0f, Mathf.Min(r.width, r.height) * 0.5f);
+            List<Vector2> points = new List<Vector2>(segments * 4 + 4);
+            AddArc(points, new Vector2(r.xMax-radius, r.yMax-radius), radius, 0f, 90f, segments);
+            AddArc(points, new Vector2(r.xMin+radius, r.yMax-radius), radius, 90f, 180f, segments);
+            AddArc(points, new Vector2(r.xMin+radius, r.yMin+radius), radius, 180f, 270f, segments);
+            AddArc(points, new Vector2(r.xMax-radius, r.yMin+radius), radius, 270f, 360f, segments);
+            return points;
+        }
+
+        private static void AddArc(List<Vector2> points, Vector2 center, float radius, float start, float end, int segments)
+        {
+            for (int i = 0; i < segments; i++)
+            {
+                float t = i / (float)segments;
+                float angle = Mathf.Lerp(start, end, t) * Mathf.Deg2Rad;
+                points.Add(center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+            }
         }
     }
 }
