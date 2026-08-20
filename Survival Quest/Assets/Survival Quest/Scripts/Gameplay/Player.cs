@@ -9,17 +9,13 @@ namespace SurvivalGame
     public class Player : MonoBehaviour
     {
         public CharacterController m_PlayerController;
-
         public Camera m_MainCamera;
-
         public float m_MovementSpeed = 5f;
 
         [HideInInspector]
         public float m_Health = 100f;
-
         [HideInInspector]
         public int m_WeaponInHand = 0;
-
         [HideInInspector]
         public int m_SwordHits = 0;
         [HideInInspector]
@@ -35,10 +31,9 @@ namespace SurvivalGame
         public bool m_CanMove = true;
 
         public Transform m_HitPoint;
-
         public static Player m_Current;
-
         public Animator m_Animator;
+
         [HideInInspector]
         public float m_AnimatorMoveSpeed = 0f;
 
@@ -53,22 +48,16 @@ namespace SurvivalGame
         private void InitializeComponents()
         {
             if (m_PlayerController == null)
-            {
                 m_PlayerController = GetComponent<CharacterController>();
-            }
 
             if (m_Animator == null)
-            {
                 m_Animator = GetComponentInChildren<Animator>();
-            }
 
             if (m_HitPoint == null)
             {
                 Transform foundHp = transform.Find("HitPoint");
                 if (foundHp != null)
-                {
                     m_HitPoint = foundHp;
-                }
                 else
                 {
                     GameObject hpGo = new GameObject("HitPoint");
@@ -79,11 +68,8 @@ namespace SurvivalGame
             }
 
             if (m_MainCamera == null)
-            {
                 m_MainCamera = Camera.main;
-            }
 
-            // Auto-discover weapon models if array is empty or contains nulls
             FindOrFixWeaponModels();
         }
 
@@ -93,11 +79,8 @@ namespace SurvivalGame
                 m_WeaponModels[0] != null && m_WeaponModels[1] != null &&
                 m_WeaponModels[2] != null && m_WeaponModels[3] != null &&
                 m_WeaponModels[4] != null)
-            {
                 return;
-            }
 
-            // Attempt to locate weapon GameObjects in children
             Transform[] allChildren = GetComponentsInChildren<Transform>(true);
             GameObject axe = null;
             GameObject sword = null;
@@ -123,9 +106,7 @@ namespace SurvivalGame
             if (bomb != null) list.Add(bomb);
 
             if (list.Count > 0)
-            {
                 m_WeaponModels = list.ToArray();
-            }
         }
 
         void Start()
@@ -137,7 +118,8 @@ namespace SurvivalGame
             m_Health = 100f;
 
             if (GameControl.m_Current != null && GameControl.m_Current.m_Data != null &&
-                GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 0)
+                GameControl.m_Current.m_Data.m_Weapons != null &&
+                GameControl.m_Current.m_Data.m_Weapons.Length > 0)
             {
                 GameControl.m_Current.m_Data.m_Weapons[0] = 1;
             }
@@ -150,7 +132,6 @@ namespace SurvivalGame
             float vertical = Input.GetAxisRaw("Vertical");
             float horizontal = Input.GetAxisRaw("Horizontal");
 
-            // Use Joystick / InputControl if active and providing input
             if (InputControl.m_Main != null && Joystick.m_Main != null)
             {
                 Vector3 joyMove = InputControl.m_Main.m_Movement;
@@ -162,54 +143,37 @@ namespace SurvivalGame
             }
 
             if (m_MainCamera == null)
-            {
                 m_MainCamera = Camera.main;
-            }
 
             Vector3 camRight = m_MainCamera != null ? m_MainCamera.transform.right : Vector3.right;
             Vector3 camForward = m_MainCamera != null ? m_MainCamera.transform.forward : Vector3.forward;
-
             Vector3 movementDirection = horizontal * camRight + vertical * camForward;
             Vector3 rotation = movementDirection;
 
             movementDirection.y = 0f;
             if (movementDirection.sqrMagnitude > 0.0001f)
-            {
                 movementDirection.Normalize();
-            }
             else
-            {
                 movementDirection = Vector3.zero;
-            }
 
             rotation.y = 0f;
             if (rotation.sqrMagnitude > 0.0001f)
-            {
                 rotation.Normalize();
-            }
             else
-            {
                 rotation = Vector3.zero;
-            }
 
             float targetSpeed = movementDirection.magnitude;
             m_AnimatorMoveSpeed = Mathf.Lerp(m_AnimatorMoveSpeed, targetSpeed, 10f * Time.deltaTime);
 
             if (m_Animator != null)
-            {
                 m_Animator.SetFloat("move-blend", m_AnimatorMoveSpeed);
-            }
 
             Vector3 totalMovement = new Vector3(0f, -10f, 0f);
             if (movementDirection.magnitude > 0.1f && m_CanMove)
-            {
                 totalMovement += movementDirection * m_MovementSpeed;
-            }
 
             if (m_PlayerController != null && m_PlayerController.enabled)
-            {
                 m_PlayerController.Move(totalMovement * Time.deltaTime);
-            }
 
             if (movementDirection != Vector3.zero && rotation != Vector3.zero && rotation.sqrMagnitude > 0.001f)
             {
@@ -217,7 +181,6 @@ namespace SurvivalGame
                 transform.rotation = Quaternion.Lerp(transform.rotation, targetRot, 10f * Time.deltaTime);
             }
 
-            // Workbench interaction
             if (Input.GetKeyDown(KeyCode.C))
             {
                 if (isNearWorkbench && InGameUI.Current != null && InGameUI.Current.Panel_Crafting != null)
@@ -228,46 +191,48 @@ namespace SurvivalGame
                 }
             }
 
-            // Attack input (Space key or Joystick Fire button)
             bool firePressed = Input.GetKeyDown(KeyCode.Space) ||
                                (InputControl.m_Main != null && InputControl.m_Main.m_Fire);
-
             if (firePressed)
-            {
                 StartCoroutine(Co_Attack());
-            }
 
-            // Weapon switching
             if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchToDeafultWeapon();
             if (Input.GetKeyDown(KeyCode.Alpha2)) TrySelectWeapon(1);
             if (Input.GetKeyDown(KeyCode.Alpha3)) TrySelectWeapon(2);
             if (Input.GetKeyDown(KeyCode.Alpha4)) TrySelectWeapon(3);
             if (Input.GetKeyDown(KeyCode.Alpha5)) TrySelectWeapon(4);
 
-            if (m_WeaponInHand > 0 && GameControl.m_Current != null && GameControl.m_Current.m_Data != null)
+            if (m_WeaponInHand > 0 &&
+                GameControl.m_Current != null &&
+                GameControl.m_Current.m_Data != null &&
+                GameControl.m_Current.m_Data.m_Weapons != null &&
+                m_WeaponInHand < GameControl.m_Current.m_Data.m_Weapons.Length)
             {
                 if (GameControl.m_Current.m_Data.m_Weapons[m_WeaponInHand] <= 0)
-                {
                     SwitchToDeafultWeapon();
-                }
             }
 
-            // Health items
             if (Input.GetKeyDown(KeyCode.R))
             {
-                if (GameControl.m_Current != null && GameControl.m_Current.m_Data != null &&
+                if (GameControl.m_Current != null &&
+                    GameControl.m_Current.m_Data != null &&
+                    GameControl.m_Current.m_Data.m_Resources != null &&
+                    GameControl.m_Current.m_Data.m_Resources.Length > 2 &&
                     GameControl.m_Current.m_Data.m_Resources[2] > 0)
                 {
-                    GameControl.m_Current.m_Data.m_Resources[2] -= 1;
+                    GameControl.m_Current.m_Data.m_Resources[2]--;
                     m_Health = Mathf.Min(m_Health + 40f, 100f);
                 }
             }
             else if (Input.GetKeyDown(KeyCode.T))
             {
-                if (GameControl.m_Current != null && GameControl.m_Current.m_Data != null &&
+                if (GameControl.m_Current != null &&
+                    GameControl.m_Current.m_Data != null &&
+                    GameControl.m_Current.m_Data.m_Resources != null &&
+                    GameControl.m_Current.m_Data.m_Resources.Length > 3 &&
                     GameControl.m_Current.m_Data.m_Resources[3] > 0)
                 {
-                    GameControl.m_Current.m_Data.m_Resources[3] -= 1;
+                    GameControl.m_Current.m_Data.m_Resources[3]--;
                     m_Health = Mathf.Min(m_Health + 10f, 100f);
                 }
             }
@@ -277,48 +242,50 @@ namespace SurvivalGame
 
         private void TrySelectWeapon(int index)
         {
-            if (GameControl.m_Current != null && GameControl.m_Current.m_Data != null &&
-                GameControl.m_Current.m_Data.m_Weapons.Length > index &&
-                GameControl.m_Current.m_Data.m_Weapons[index] > 0)
+            if (index < 0 ||
+                GameControl.m_Current == null ||
+                GameControl.m_Current.m_Data == null ||
+                GameControl.m_Current.m_Data.m_Weapons == null ||
+                index >= GameControl.m_Current.m_Data.m_Weapons.Length)
+                return;
+
+            if (GameControl.m_Current.m_Data.m_Weapons[index] > 0)
             {
                 SelectWeapon(index);
                 m_WeaponInHand = index;
                 if (InGameUI.Current != null)
-                {
                     InGameUI.Current.Btn_SelectItem(index);
-                }
             }
         }
 
         IEnumerator Co_Attack()
         {
             if (!m_CanHit) yield break;
-
             m_CanHit = false;
 
             if (m_Animator != null)
-            {
                 m_Animator.Play("hit-1", 0, 0f);
-            }
 
             switch (m_WeaponInHand)
             {
-                case 0: // Axe
+                case 0:
                     yield return new WaitForSeconds(0.3f);
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null)
-                    {
+                    if (GameControl.m_Current != null &&
+                        GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment.Length > 0 &&
+                        GameControl.m_Current.m_Contents.m_Equipment[0] != null)
                         CheckHit(GameControl.m_Current.m_Contents.m_Equipment[0].m_Damage);
-                    }
                     else
-                    {
                         CheckHit(10f);
-                    }
                     break;
 
-                case 1: // Sword
+                case 1:
                     yield return new WaitForSeconds(0.3f);
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
-                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 1 &&
+                    if (GameControl.m_Current != null &&
+                        GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment.Length > 1 &&
                         GameControl.m_Current.m_Contents.m_Equipment[1] != null)
                     {
                         CheckHit(GameControl.m_Current.m_Contents.m_Equipment[1].m_Damage);
@@ -326,23 +293,23 @@ namespace SurvivalGame
                         if (m_SwordHits >= GameControl.m_Current.m_Contents.m_Equipment[1].m_Durability)
                         {
                             Invoke("SwitchToDeafultWeapon", 0.5f);
-                            if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 1)
-                            {
+                            if (GameControl.m_Current.m_Data != null &&
+                                GameControl.m_Current.m_Data.m_Weapons != null &&
+                                GameControl.m_Current.m_Data.m_Weapons.Length > 1)
                                 GameControl.m_Current.m_Data.m_Weapons[1]--;
-                            }
                             m_SwordHits = 0;
                         }
                     }
                     else
-                    {
                         CheckHit(15f);
-                    }
                     break;
 
-                case 2: // Hammer
+                case 2:
                     yield return new WaitForSeconds(0.3f);
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
-                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 2 &&
+                    if (GameControl.m_Current != null &&
+                        GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment.Length > 2 &&
                         GameControl.m_Current.m_Contents.m_Equipment[2] != null)
                     {
                         CheckHit(GameControl.m_Current.m_Contents.m_Equipment[2].m_Damage);
@@ -350,38 +317,42 @@ namespace SurvivalGame
                         if (m_HammerHits >= GameControl.m_Current.m_Contents.m_Equipment[2].m_Durability)
                         {
                             Invoke("SwitchToDeafultWeapon", 0.5f);
-                            if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 2)
-                            {
+                            if (GameControl.m_Current.m_Data != null &&
+                                GameControl.m_Current.m_Data.m_Weapons != null &&
+                                GameControl.m_Current.m_Data.m_Weapons.Length > 2)
                                 GameControl.m_Current.m_Data.m_Weapons[2]--;
-                            }
                             m_HammerHits = 0;
                         }
                     }
                     else
-                    {
                         CheckHit(20f);
-                    }
                     break;
 
-                case 3: // Trap
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
-                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 3 &&
-                        GameControl.m_Current.m_Contents.m_Equipment[3] != null && GameControl.m_Current.m_Contents.m_Equipment[3].m_Prefab != null)
+                case 3:
+                    if (GameControl.m_Current != null &&
+                        GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment.Length > 3 &&
+                        GameControl.m_Current.m_Contents.m_Equipment[3] != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment[3].m_Prefab != null)
                     {
                         GameObject obj = Instantiate(GameControl.m_Current.m_Contents.m_Equipment[3].m_Prefab);
                         obj.transform.position = transform.position;
-                        if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 3)
-                        {
+                        if (GameControl.m_Current.m_Data != null &&
+                            GameControl.m_Current.m_Data.m_Weapons != null &&
+                            GameControl.m_Current.m_Data.m_Weapons.Length > 3)
                             GameControl.m_Current.m_Data.m_Weapons[3]--;
-                        }
                     }
                     break;
 
-                case 4: // Bomb
+                case 4:
                     yield return new WaitForSeconds(0.2f);
-                    if (GameControl.m_Current != null && GameControl.m_Current.m_Contents != null &&
-                        GameControl.m_Current.m_Contents.m_Equipment != null && GameControl.m_Current.m_Contents.m_Equipment.Length > 4 &&
-                        GameControl.m_Current.m_Contents.m_Equipment[4] != null && GameControl.m_Current.m_Contents.m_Equipment[4].m_Prefab != null)
+                    if (GameControl.m_Current != null &&
+                        GameControl.m_Current.m_Contents != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment.Length > 4 &&
+                        GameControl.m_Current.m_Contents.m_Equipment[4] != null &&
+                        GameControl.m_Current.m_Contents.m_Equipment[4].m_Prefab != null)
                     {
                         Vector3 spawnPos = m_HitPoint != null ? m_HitPoint.position : transform.position + transform.forward + Vector3.up;
                         GameObject obj1 = Instantiate(GameControl.m_Current.m_Contents.m_Equipment[4].m_Prefab);
@@ -392,10 +363,10 @@ namespace SurvivalGame
                             body.AddForce(4f * transform.forward + new Vector3(0f, 6f, 0f), ForceMode.VelocityChange);
                             body.angularVelocity = obj1.transform.rotation * new Vector3(20f, 0f, 0f);
                         }
-                        if (GameControl.m_Current.m_Data != null && GameControl.m_Current.m_Data.m_Weapons != null && GameControl.m_Current.m_Data.m_Weapons.Length > 4)
-                        {
+                        if (GameControl.m_Current.m_Data != null &&
+                            GameControl.m_Current.m_Data.m_Weapons != null &&
+                            GameControl.m_Current.m_Data.m_Weapons.Length > 4)
                             GameControl.m_Current.m_Data.m_Weapons[4]--;
-                        }
                     }
                     break;
             }
@@ -406,19 +377,17 @@ namespace SurvivalGame
 
         public void SelectWeapon(int num)
         {
+            if (num < 0) return;
+
             if (m_WeaponModels == null || m_WeaponModels.Length == 0)
-            {
                 FindOrFixWeaponModels();
-            }
 
             if (m_WeaponModels != null)
             {
                 for (int i = 0; i < m_WeaponModels.Length; i++)
                 {
                     if (m_WeaponModels[i] != null)
-                    {
                         m_WeaponModels[i].SetActive(i == num);
-                    }
                 }
             }
 
@@ -429,6 +398,7 @@ namespace SurvivalGame
         {
             Vector3 hitCenter = m_HitPoint != null ? m_HitPoint.position : transform.position + transform.forward * 1.2f + Vector3.up * 0.8f;
             Collider[] hits = Physics.OverlapSphere(hitCenter, 1.2f);
+
             foreach (Collider c in hits)
             {
                 if (c == null || c.gameObject == gameObject) continue;
@@ -483,9 +453,7 @@ namespace SurvivalGame
             SelectWeapon(0);
             m_WeaponInHand = 0;
             if (InGameUI.Current != null)
-            {
                 InGameUI.Current.Btn_SelectItem(0);
-            }
         }
 
         public void HitImpulse(Vector3 dir)
@@ -496,9 +464,7 @@ namespace SurvivalGame
                 return;
 
             if (m_PlayerController != null && m_PlayerController.enabled)
-            {
                 m_PlayerController.Move(dir);
-            }
         }
     }
 }
