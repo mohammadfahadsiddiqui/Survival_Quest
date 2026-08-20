@@ -140,7 +140,11 @@ namespace SurvivalGame.UI
         {
             GameObject go=Rect(name+" Click",parent,new Vector2(x1,y1),new Vector2(x2,y2));
 
-            // This Graphic has no mesh, but GraphicRaycaster can still use its RectTransform as the hit area.
+            // CanvasRenderer is explicitly created BEFORE any Graphic component.
+            // Without it Unity throws MissingComponentException and the button becomes unusable.
+            if(go.GetComponent<CanvasRenderer>()==null)
+                go.AddComponent<CanvasRenderer>();
+
             InvisibleRaycastGraphic hitGraphic=go.AddComponent<InvisibleRaycastGraphic>();
             hitGraphic.raycastTarget=true;
 
@@ -151,7 +155,6 @@ namespace SurvivalGame.UI
             button.navigation=Navigation.defaultNavigation;
             button.onClick.AddListener(action);
 
-            // Pointer events are received by this same invisible hit object.
             HoverGlowController controller=go.AddComponent<HoverGlowController>();
             controller.Glow=go.AddComponent<HoverGlowGraphic>();
         }
@@ -211,8 +214,6 @@ namespace SurvivalGame.UI
 
             system.enabled=true;
 
-            // The old implementation returned immediately when an EventSystem already existed.
-            // That left scenes with an EventSystem but no input module, making every menu control dead.
             if(system.GetComponent<BaseInputModule>()==null)
             {
 #if ENABLE_INPUT_SYSTEM
@@ -224,6 +225,7 @@ namespace SurvivalGame.UI
         }
     }
 
+    [RequireComponent(typeof(CanvasRenderer))]
     internal sealed class InvisibleRaycastGraphic : Graphic
     {
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -247,6 +249,7 @@ namespace SurvivalGame.UI
         }
     }
 
+    [RequireComponent(typeof(CanvasRenderer))]
     internal sealed class HoverGlowGraphic : Graphic
     {
         private bool hovering;
