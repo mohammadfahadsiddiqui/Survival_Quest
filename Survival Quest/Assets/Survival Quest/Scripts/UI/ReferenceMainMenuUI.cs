@@ -127,7 +127,7 @@ namespace SurvivalGame.UI
         {
             GameObject go=Rect(name+" Click",parent,new Vector2(x1,y1),new Vector2(x2,y2));
 
-            // This Graphic is ONLY a transparent mouse hit area. It draws nothing.
+            // Invisible click area. It has no mesh, so it can NEVER paint a rectangle over the artwork.
             InvisibleRaycastGraphic hitGraphic=go.AddComponent<InvisibleRaycastGraphic>();
             hitGraphic.raycastTarget=true;
 
@@ -137,9 +137,9 @@ namespace SurvivalGame.UI
             button.navigation=Navigation.defaultNavigation;
             button.onClick.AddListener(action);
 
+            // The glow is a separate non-raycasting graphic. It is visible only while hovering.
             HoverGlowGraphic glow=go.AddComponent<HoverGlowGraphic>();
             glow.raycastTarget=false;
-            glow.Configure();
         }
 
         private void StartNew(){LoadGame();}
@@ -176,7 +176,6 @@ namespace SurvivalGame.UI
         }
     }
 
-    // Completely invisible UI element that still receives GraphicRaycaster mouse events.
     internal sealed class InvisibleRaycastGraphic : Graphic
     {
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -185,11 +184,10 @@ namespace SurvivalGame.UI
         }
     }
 
-    // Draws only a soft golden outline. There is NEVER a filled rectangle.
     internal sealed class HoverGlowGraphic : Graphic, IPointerEnterHandler, IPointerExitHandler
     {
         private bool hovering;
-        private float pulse;
+        private float pulse=1f;
 
         private readonly Color[] layerColors =
         {
@@ -200,89 +198,87 @@ namespace SurvivalGame.UI
 
         private readonly float[] layerWidths = { 2f, 5f, 9f };
 
-        public void Configure()
+        protected override void Awake()
         {
-            color = Color.white;
-            raycastTarget = false;
-            enabled = false;
+            base.Awake();
+            raycastTarget=false;
+            color=Color.white;
+            enabled=true;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            hovering = true;
-            enabled = true;
+            hovering=true;
             SetVerticesDirty();
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            hovering = false;
-            enabled = false;
+            hovering=false;
+            SetVerticesDirty();
         }
 
         private void Update()
         {
-            if (!hovering) return;
-            pulse = 0.82f + Mathf.Sin(Time.unscaledTime * 5f) * 0.18f;
+            if(!hovering) return;
+            pulse=0.82f+Mathf.Sin(Time.unscaledTime*5f)*0.18f;
             SetVerticesDirty();
         }
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
-            if (!hovering) return;
+            if(!hovering) return;
 
-            Rect r = GetPixelAdjustedRect();
-            float radius = Mathf.Min(12f, Mathf.Min(r.width, r.height) * 0.20f);
+            Rect r=GetPixelAdjustedRect();
+            float radius=Mathf.Min(12f,Mathf.Min(r.width,r.height)*0.20f);
 
-            for (int layer = layerWidths.Length - 1; layer >= 0; layer--)
+            for(int layer=layerWidths.Length-1;layer>=0;layer--)
             {
-                float width = layerWidths[layer];
-                Color c = layerColors[layer];
-                c.a *= pulse;
-                AddRoundedRing(vh, r, radius + width * 0.5f, radius, width, c);
+                float width=layerWidths[layer];
+                Color c=layerColors[layer];
+                c.a*=pulse;
+                AddRoundedRing(vh,r,radius,width,c);
             }
         }
 
-        private static void AddRoundedRing(VertexHelper vh, Rect rect, float outerRadius, float innerRadius, float width, Color color)
+        private static void AddRoundedRing(VertexHelper vh,Rect rect,float radius,float width,Color color)
         {
-            const int cornerSegments = 8;
-            const int corners = 4;
-            int pointsPerLoop = cornerSegments * corners + 4;
-            List<Vector2> outer = BuildRoundedLoop(rect, outerRadius, cornerSegments);
-            Rect innerRect = new Rect(rect.x + width, rect.y + width, rect.width - width * 2f, rect.height - width * 2f);
-            List<Vector2> inner = BuildRoundedLoop(innerRect, Mathf.Max(0f, innerRadius - width * 0.35f), cornerSegments);
+            const int segments=8;
+            List<Vector2> outer=BuildRoundedLoop(rect,radius+width*0.5f,segments);
+            Rect innerRect=new Rect(rect.x+width,rect.y+width,rect.width-width*2f,rect.height-width*2f);
+            List<Vector2> inner=BuildRoundedLoop(innerRect,Mathf.Max(0f,radius-width*0.35f),segments);
+            int count=Mathf.Min(outer.Count,inner.Count);
 
-            int count = Mathf.Min(outer.Count, inner.Count);
-            for (int i = 0; i < count; i++)
+            for(int i=0;i<count;i++)
             {
-                int next = (i + 1) % count;
-                UIVertex a = UIVertex.simpleVert; a.position = outer[i]; a.color = color;
-                UIVertex b = UIVertex.simpleVert; b.position = outer[next]; b.color = color;
-                UIVertex c = UIVertex.simpleVert; c.position = inner[next]; c.color = color;
-                UIVertex d = UIVertex.simpleVert; d.position = inner[i]; d.color = color;
-                vh.AddUIVertexQuad(new[] { a, b, c, d });
+                int next=(i+1)%count;
+                UIVertex a=UIVertex.simpleVert; a.position=outer[i]; a.color=color;
+                UIVertex b=UIVertex.simpleVert; b.position=outer[next]; b.color=color;
+                UIVertex c=UIVertex.simpleVert; c.position=inner[next]; c.color=color;
+                UIVertex d=UIVertex.simpleVert; d.position=inner[i]; d.color=color;
+                vh.AddUIVertexQuad(new[]{a,b,c,d});
             }
         }
 
-        private static List<Vector2> BuildRoundedLoop(Rect r, float radius, int segments)
+        private static List<Vector2> BuildRoundedLoop(Rect r,float radius,int segments)
         {
-            radius = Mathf.Clamp(radius, 0f, Mathf.Min(r.width, r.height) * 0.5f);
-            List<Vector2> points = new List<Vector2>(segments * 4 + 4);
-            AddArc(points, new Vector2(r.xMax-radius, r.yMax-radius), radius, 0f, 90f, segments);
-            AddArc(points, new Vector2(r.xMin+radius, r.yMax-radius), radius, 90f, 180f, segments);
-            AddArc(points, new Vector2(r.xMin+radius, r.yMin+radius), radius, 180f, 270f, segments);
-            AddArc(points, new Vector2(r.xMax-radius, r.yMin+radius), radius, 270f, 360f, segments);
+            radius=Mathf.Clamp(radius,0f,Mathf.Min(r.width,r.height)*0.5f);
+            List<Vector2> points=new List<Vector2>(segments*4);
+            AddArc(points,new Vector2(r.xMax-radius,r.yMax-radius),radius,0f,90f,segments);
+            AddArc(points,new Vector2(r.xMin+radius,r.yMax-radius),radius,90f,180f,segments);
+            AddArc(points,new Vector2(r.xMin+radius,r.yMin+radius),radius,180f,270f,segments);
+            AddArc(points,new Vector2(r.xMax-radius,r.yMin+radius),radius,270f,360f,segments);
             return points;
         }
 
-        private static void AddArc(List<Vector2> points, Vector2 center, float radius, float start, float end, int segments)
+        private static void AddArc(List<Vector2> points,Vector2 center,float radius,float start,float end,int segments)
         {
-            for (int i = 0; i < segments; i++)
+            for(int i=0;i<segments;i++)
             {
-                float t = i / (float)segments;
-                float angle = Mathf.Lerp(start, end, t) * Mathf.Deg2Rad;
-                points.Add(center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+                float t=i/(float)segments;
+                float angle=Mathf.Lerp(start,end,t)*Mathf.Deg2Rad;
+                points.Add(center+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*radius);
             }
         }
     }
