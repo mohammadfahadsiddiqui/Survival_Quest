@@ -126,9 +126,17 @@ namespace SurvivalGame.UI
         private void Hit(Transform parent,string name,float x1,float y1,float x2,float y2,UnityEngine.Events.UnityAction action)
         {
             GameObject go=Rect(name+" Click",parent,new Vector2(x1,y1),new Vector2(x2,y2));
-            Image image=go.AddComponent<Image>(); image.color=new Color(0,0,0,0); image.raycastTarget=true;
-            Button button=go.AddComponent<Button>(); button.targetGraphic=image; button.onClick.AddListener(action);
-            ColorBlock colors=button.colors; colors.highlightedColor=new Color(1,1,1,.035f); colors.pressedColor=new Color(1,.72f,.12f,.08f); button.colors=colors;
+            Image image=go.AddComponent<Image>();
+            image.color=new Color(1f,0.75f,0.18f,0.012f);
+            image.raycastTarget=true;
+
+            Button button=go.AddComponent<Button>();
+            button.targetGraphic=image;
+            button.transition=Selectable.Transition.None;
+            button.onClick.AddListener(action);
+
+            MainMenuHoverGlow glow=go.AddComponent<MainMenuHoverGlow>();
+            glow.Configure(image);
         }
 
         private void StartNew(){LoadGame();}
@@ -162,6 +170,46 @@ namespace SurvivalGame.UI
 #else
             go.AddComponent<StandaloneInputModule>();
 #endif
+        }
+    }
+
+    internal sealed class MainMenuHoverGlow : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        private Image source;
+        private Outline outline;
+        private bool hovering;
+        private float baseAlpha;
+
+        public void Configure(Image target)
+        {
+            source=target;
+            baseAlpha=target.color.a;
+            outline=target.gameObject.AddComponent<Outline>();
+            outline.effectColor=new Color(1f,0.62f,0.12f,0.95f);
+            outline.effectDistance=new Vector2(5f,5f);
+            outline.useGraphicAlpha=false;
+            outline.enabled=false;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            hovering=true;
+            if(outline!=null) outline.enabled=true;
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            hovering=false;
+            if(outline!=null) outline.enabled=false;
+            if(source!=null) source.color=new Color(1f,0.75f,0.18f,baseAlpha);
+        }
+
+        private void Update()
+        {
+            if(!hovering || outline==null || !outline.enabled) return;
+            float pulse=0.82f+Mathf.Sin(Time.unscaledTime*5.5f)*0.18f;
+            outline.effectColor=new Color(1f,0.60f,0.10f,pulse);
+            outline.effectDistance=new Vector2(4f+2f*pulse,4f+2f*pulse);
         }
     }
 }
