@@ -53,7 +53,6 @@ namespace SurvivalGame.UI
                 return;
             }
 
-            // Coordinates are aligned to the supplied 1659x948 artwork.
             Hit(root.transform, "PLAY",       .045f, .525f, .325f, .615f, StartNew);
             Hit(root.transform, "CONTINUE",   .045f, .435f, .325f, .515f, ContinueGame);
             Hit(root.transform, "NEW GAME",   .045f, .345f, .325f, .425f, StartNew);
@@ -127,7 +126,8 @@ namespace SurvivalGame.UI
         {
             GameObject go=Rect(name+" Click",parent,new Vector2(x1,y1),new Vector2(x2,y2));
             Image image=go.AddComponent<Image>();
-            image.color=new Color(1f,0.75f,0.18f,0.012f);
+            // Completely invisible hit area: it must never create a colored rectangle over the artwork.
+            image.color=Color.clear;
             image.raycastTarget=true;
 
             Button button=go.AddComponent<Button>();
@@ -175,41 +175,61 @@ namespace SurvivalGame.UI
 
     internal sealed class MainMenuHoverGlow : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        private Image source;
-        private Outline outline;
         private bool hovering;
-        private float baseAlpha;
+        private Outline tightGlow;
+        private Outline middleGlow;
+        private Outline outerGlow;
 
         public void Configure(Image target)
         {
-            source=target;
-            baseAlpha=target.color.a;
-            outline=target.gameObject.AddComponent<Outline>();
-            outline.effectColor=new Color(1f,0.62f,0.12f,0.95f);
-            outline.effectDistance=new Vector2(5f,5f);
-            outline.useGraphicAlpha=false;
-            outline.enabled=false;
+            // Three outline layers create a glow around the option only.
+            // The source Image stays fully transparent, so there is NO orange rectangle.
+            tightGlow=target.gameObject.AddComponent<Outline>();
+            tightGlow.useGraphicAlpha=false;
+            tightGlow.effectColor=new Color(1f,.70f,.20f,.95f);
+            tightGlow.effectDistance=new Vector2(2f,2f);
+            tightGlow.enabled=false;
+
+            middleGlow=target.gameObject.AddComponent<Outline>();
+            middleGlow.useGraphicAlpha=false;
+            middleGlow.effectColor=new Color(1f,.52f,.08f,.42f);
+            middleGlow.effectDistance=new Vector2(5f,5f);
+            middleGlow.enabled=false;
+
+            outerGlow=target.gameObject.AddComponent<Outline>();
+            outerGlow.useGraphicAlpha=false;
+            outerGlow.effectColor=new Color(1f,.38f,.03f,.18f);
+            outerGlow.effectDistance=new Vector2(9f,9f);
+            outerGlow.enabled=false;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
         {
             hovering=true;
-            if(outline!=null) outline.enabled=true;
+            SetGlow(true);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             hovering=false;
-            if(outline!=null) outline.enabled=false;
-            if(source!=null) source.color=new Color(1f,0.75f,0.18f,baseAlpha);
+            SetGlow(false);
+        }
+
+        private void SetGlow(bool enabled)
+        {
+            if(tightGlow!=null) tightGlow.enabled=enabled;
+            if(middleGlow!=null) middleGlow.enabled=enabled;
+            if(outerGlow!=null) outerGlow.enabled=enabled;
         }
 
         private void Update()
         {
-            if(!hovering || outline==null || !outline.enabled) return;
-            float pulse=0.82f+Mathf.Sin(Time.unscaledTime*5.5f)*0.18f;
-            outline.effectColor=new Color(1f,0.60f,0.10f,pulse);
-            outline.effectDistance=new Vector2(4f+2f*pulse,4f+2f*pulse);
+            if(!hovering) return;
+
+            float pulse=0.82f+Mathf.Sin(Time.unscaledTime*4.5f)*0.18f;
+            if(tightGlow!=null) tightGlow.effectColor=new Color(1f,.72f,.25f,.95f*pulse);
+            if(middleGlow!=null) middleGlow.effectColor=new Color(1f,.52f,.08f,.42f*pulse);
+            if(outerGlow!=null) outerGlow.effectColor=new Color(1f,.35f,.02f,.18f*pulse);
         }
     }
 }
