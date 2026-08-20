@@ -23,6 +23,7 @@ namespace SurvivalGame.UI
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
             EnsureSingleEventSystem();
+
             foreach (MainMenuUI oldMenu in FindObjectsByType<MainMenuUI>(FindObjectsSortMode.None))
                 if (oldMenu != null) oldMenu.enabled = false;
         }
@@ -66,6 +67,7 @@ namespace SurvivalGame.UI
         private void OpenSettings()
         {
             if (settingsPanel != null) { settingsPanel.SetActive(true); return; }
+
             settingsPanel = Rect("Settings Panel", canvas.transform, new Vector2(.17f,.08f), new Vector2(.83f,.92f));
             Image bg = settingsPanel.AddComponent<Image>();
             bg.color = new Color(.018f,.035f,.008f,.985f);
@@ -93,6 +95,7 @@ namespace SurvivalGame.UI
             Label(settingsPanel.transform,text,12,.07f,y,.35f,y+.045f,TextAnchor.MiddleLeft,new Color(.70f,.83f,.46f));
             Image line = Rect(text+" Line",settingsPanel.transform,new Vector2(.07f,y-.012f),new Vector2(.93f,y-.008f)).AddComponent<Image>();
             line.color = new Color(.55f,.37f,.12f,.8f);
+            line.raycastTarget = false;
         }
 
         private void SliderRow(string text,float y,float value,UnityEngine.Events.UnityAction<float> callback)
@@ -102,10 +105,16 @@ namespace SurvivalGame.UI
             Slider slider = holder.AddComponent<Slider>();
             slider.minValue=0; slider.maxValue=1; slider.value=Mathf.Clamp01(value); slider.interactable=true;
             slider.onValueChanged.AddListener(callback);
-            Image track=Rect("Track",holder.transform,Vector2.zero,Vector2.one).AddComponent<Image>(); track.color=new Color(.07f,.045f,.015f); track.raycastTarget=true;
-            GameObject fill=Rect("Fill",holder.transform,Vector2.zero,new Vector2(.5f,1)); Image fi=fill.AddComponent<Image>(); fi.color=new Color(.73f,.52f,.18f); fi.raycastTarget=false;
-            GameObject handle=Rect("Handle",holder.transform,new Vector2(0,.5f),new Vector2(0,.5f)); handle.GetComponent<RectTransform>().sizeDelta=new Vector2(28,34); Image hi=handle.AddComponent<Image>(); hi.color=new Color(.98f,.82f,.43f); hi.raycastTarget=true;
-            slider.fillRect=fill.GetComponent<RectTransform>(); slider.handleRect=handle.GetComponent<RectTransform>();
+
+            Image track=Rect("Track",holder.transform,Vector2.zero,Vector2.one).AddComponent<Image>();
+            track.color=new Color(.07f,.045f,.015f); track.raycastTarget=true;
+            GameObject fill=Rect("Fill",holder.transform,Vector2.zero,new Vector2(.5f,1));
+            Image fi=fill.AddComponent<Image>(); fi.color=new Color(.73f,.52f,.18f); fi.raycastTarget=false;
+            GameObject handle=Rect("Handle",holder.transform,new Vector2(0,.5f),new Vector2(0,.5f));
+            handle.GetComponent<RectTransform>().sizeDelta=new Vector2(28,34);
+            Image hi=handle.AddComponent<Image>(); hi.color=new Color(.98f,.82f,.43f); hi.raycastTarget=true;
+            slider.fillRect=fill.GetComponent<RectTransform>();
+            slider.handleRect=handle.GetComponent<RectTransform>();
         }
 
         private void ToggleRow(string text,float y,bool value,UnityEngine.Events.UnityAction<bool> callback)
@@ -114,43 +123,60 @@ namespace SurvivalGame.UI
             GameObject holder=Rect(text+" Toggle",settingsPanel.transform,new Vector2(.78f,y),new Vector2(.91f,y+.065f));
             Image bg=holder.AddComponent<Image>(); bg.color=new Color(.08f,.055f,.018f); bg.raycastTarget=true;
             Toggle toggle=holder.AddComponent<Toggle>(); toggle.targetGraphic=bg; toggle.isOn=value; toggle.interactable=true; toggle.onValueChanged.AddListener(callback);
-            GameObject check=Rect("Check",holder.transform,new Vector2(.08f,.15f),new Vector2(.46f,.85f)); Image ci=check.AddComponent<Image>(); ci.color=new Color(.75f,.54f,.18f); ci.raycastTarget=false; toggle.graphic=ci;
+            GameObject check=Rect("Check",holder.transform,new Vector2(.08f,.15f),new Vector2(.46f,.85f));
+            Image ci=check.AddComponent<Image>(); ci.color=new Color(.75f,.54f,.18f); ci.raycastTarget=false; toggle.graphic=ci;
         }
 
         private Text Label(Transform parent,string text,int size,float x1,float y1,float x2,float y2,TextAnchor align,Color? color=null)
         {
             Text t=Rect(text+" Label",parent,new Vector2(x1,y1),new Vector2(x2,y2)).AddComponent<Text>();
-            t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); t.text=text; t.fontSize=size; t.fontStyle=FontStyle.Bold; t.alignment=align; t.color=color??new Color(.95f,.91f,.79f); t.raycastTarget=false; return t;
+            t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.text=text; t.fontSize=size; t.fontStyle=FontStyle.Bold; t.alignment=align;
+            t.color=color??new Color(.95f,.91f,.79f); t.raycastTarget=false;
+            return t;
         }
 
         private void Hit(Transform parent,string name,float x1,float y1,float x2,float y2,UnityEngine.Events.UnityAction action)
         {
             GameObject go=Rect(name+" Click",parent,new Vector2(x1,y1),new Vector2(x2,y2));
 
-            // Invisible click area. It has no mesh, so it can NEVER paint a rectangle over the artwork.
+            // This Graphic has no mesh, but GraphicRaycaster can still use its RectTransform as the hit area.
             InvisibleRaycastGraphic hitGraphic=go.AddComponent<InvisibleRaycastGraphic>();
             hitGraphic.raycastTarget=true;
 
             Button button=go.AddComponent<Button>();
             button.targetGraphic=hitGraphic;
             button.transition=Selectable.Transition.None;
+            button.interactable=true;
             button.navigation=Navigation.defaultNavigation;
             button.onClick.AddListener(action);
 
-            // The glow is a separate non-raycasting graphic. It is visible only while hovering.
-            HoverGlowGraphic glow=go.AddComponent<HoverGlowGraphic>();
-            glow.raycastTarget=false;
+            // Pointer events are received by this same invisible hit object.
+            HoverGlowController controller=go.AddComponent<HoverGlowController>();
+            controller.Glow=go.AddComponent<HoverGlowGraphic>();
         }
 
         private void StartNew(){LoadGame();}
         private void ContinueGame(){LoadGame();}
-        private void LoadGame(){if(loading)return; loading=true; Time.timeScale=1f; Cursor.visible=false; Cursor.lockState=CursorLockMode.Locked; SceneManager.LoadScene(GameScene);}
-        private void CloseSettings(){settingsPanel.SetActive(false);}
+
+        private void LoadGame()
+        {
+            if(loading)return;
+            loading=true;
+            Time.timeScale=1f;
+            Cursor.visible=false;
+            Cursor.lockState=CursorLockMode.Locked;
+            SceneManager.LoadScene(GameScene);
+        }
+
+        private void CloseSettings(){if(settingsPanel!=null)settingsPanel.SetActive(false);}
         private void Save(string key,float value){PlayerPrefs.SetFloat(key,value);PlayerPrefs.Save();}
         private void SetVolume(string key,float value,bool master){Save(key,value);if(master)AudioListener.volume=value;}
         private void ToggleMute(){AudioListener.volume=AudioListener.volume>.01f?0f:PlayerPrefs.GetFloat("SurvivalQuest.MasterVolume",1f);}
         private void ToggleFullscreen(){Screen.fullScreen=!Screen.fullScreen;}
-        private void QuitGame(){
+
+        private void QuitGame()
+        {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying=false;
 #else
@@ -160,19 +186,41 @@ namespace SurvivalGame.UI
 
         private static GameObject Rect(string name,Transform parent,Vector2 min,Vector2 max)
         {
-            GameObject go=new GameObject(name,typeof(RectTransform)); RectTransform rt=go.GetComponent<RectTransform>(); rt.SetParent(parent,false); rt.anchorMin=min; rt.anchorMax=max; rt.offsetMin=Vector2.zero; rt.offsetMax=Vector2.zero; return go;
+            GameObject go=new GameObject(name,typeof(RectTransform));
+            RectTransform rt=go.GetComponent<RectTransform>();
+            rt.SetParent(parent,false); rt.anchorMin=min; rt.anchorMax=max;
+            rt.offsetMin=Vector2.zero; rt.offsetMax=Vector2.zero;
+            return go;
         }
 
         private static void EnsureSingleEventSystem()
         {
             EventSystem[] systems=FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
-            if(systems.Length>0){for(int i=1;i<systems.Length;i++)Destroy(systems[i].gameObject);return;}
-            GameObject go=new GameObject("EventSystem",typeof(EventSystem));
+            EventSystem system=null;
+
+            if(systems.Length>0)
+            {
+                system=systems[0];
+                for(int i=1;i<systems.Length;i++)
+                    if(systems[i]!=null) Destroy(systems[i].gameObject);
+            }
+            else
+            {
+                system=new GameObject("EventSystem",typeof(EventSystem)).GetComponent<EventSystem>();
+            }
+
+            system.enabled=true;
+
+            // The old implementation returned immediately when an EventSystem already existed.
+            // That left scenes with an EventSystem but no input module, making every menu control dead.
+            if(system.GetComponent<BaseInputModule>()==null)
+            {
 #if ENABLE_INPUT_SYSTEM
-            go.AddComponent<InputSystemUIInputModule>();
+                system.gameObject.AddComponent<InputSystemUIInputModule>();
 #else
-            go.AddComponent<StandaloneInputModule>();
+                system.gameObject.AddComponent<StandaloneInputModule>();
 #endif
+            }
         }
     }
 
@@ -184,16 +232,31 @@ namespace SurvivalGame.UI
         }
     }
 
-    internal sealed class HoverGlowGraphic : Graphic, IPointerEnterHandler, IPointerExitHandler
+    internal sealed class HoverGlowController : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        public HoverGlowGraphic Glow { get; set; }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if(Glow!=null) Glow.SetHover(true);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if(Glow!=null) Glow.SetHover(false);
+        }
+    }
+
+    internal sealed class HoverGlowGraphic : Graphic
     {
         private bool hovering;
         private float pulse=1f;
 
         private readonly Color[] layerColors =
         {
-            new Color(1f, 0.76f, 0.28f, 0.95f),
-            new Color(1f, 0.55f, 0.10f, 0.42f),
-            new Color(1f, 0.30f, 0.02f, 0.16f)
+            new Color(1f, .76f, .28f, .95f),
+            new Color(1f, .55f, .10f, .42f),
+            new Color(1f, .30f, .02f, .16f)
         };
 
         private readonly float[] layerWidths = { 2f, 5f, 9f };
@@ -203,35 +266,29 @@ namespace SurvivalGame.UI
             base.Awake();
             raycastTarget=false;
             color=Color.white;
-            enabled=true;
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public void SetHover(bool value)
         {
-            hovering=true;
-            SetVerticesDirty();
-        }
-
-        public void OnPointerExit(PointerEventData eventData)
-        {
-            hovering=false;
+            if(hovering==value)return;
+            hovering=value;
             SetVerticesDirty();
         }
 
         private void Update()
         {
-            if(!hovering) return;
-            pulse=0.82f+Mathf.Sin(Time.unscaledTime*5f)*0.18f;
+            if(!hovering)return;
+            pulse=.82f+Mathf.Sin(Time.unscaledTime*5f)*.18f;
             SetVerticesDirty();
         }
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
-            if(!hovering) return;
+            if(!hovering)return;
 
             Rect r=GetPixelAdjustedRect();
-            float radius=Mathf.Min(12f,Mathf.Min(r.width,r.height)*0.20f);
+            float radius=Mathf.Min(12f,Mathf.Min(r.width,r.height)*.20f);
 
             for(int layer=layerWidths.Length-1;layer>=0;layer--)
             {
@@ -245,11 +302,12 @@ namespace SurvivalGame.UI
         private static void AddRoundedRing(VertexHelper vh,Rect rect,float radius,float width,Color color)
         {
             const int segments=8;
-            List<Vector2> outer=BuildRoundedLoop(rect,radius+width*0.5f,segments);
+            List<Vector2> outer=BuildRoundedLoop(rect,radius+width*.5f,segments);
             Rect innerRect=new Rect(rect.x+width,rect.y+width,rect.width-width*2f,rect.height-width*2f);
-            List<Vector2> inner=BuildRoundedLoop(innerRect,Mathf.Max(0f,radius-width*0.35f),segments);
-            int count=Mathf.Min(outer.Count,inner.Count);
+            if(innerRect.width<=1f||innerRect.height<=1f)return;
+            List<Vector2> inner=BuildRoundedLoop(innerRect,Mathf.Max(0f,radius-width*.35f),segments);
 
+            int count=Mathf.Min(outer.Count,inner.Count);
             for(int i=0;i<count;i++)
             {
                 int next=(i+1)%count;
@@ -263,7 +321,7 @@ namespace SurvivalGame.UI
 
         private static List<Vector2> BuildRoundedLoop(Rect r,float radius,int segments)
         {
-            radius=Mathf.Clamp(radius,0f,Mathf.Min(r.width,r.height)*0.5f);
+            radius=Mathf.Clamp(radius,0f,Mathf.Min(r.width,r.height)*.5f);
             List<Vector2> points=new List<Vector2>(segments*4);
             AddArc(points,new Vector2(r.xMax-radius,r.yMax-radius),radius,0f,90f,segments);
             AddArc(points,new Vector2(r.xMin+radius,r.yMax-radius),radius,90f,180f,segments);
